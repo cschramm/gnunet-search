@@ -23,8 +23,8 @@
  * @brief API to the ext service
  * @author Christian Grothoff
  */
-#ifndef GNUNET_EXT_SERVICE_H
-#define GNUNET_EXT_SERVICE_H
+#ifndef GNUNET_SEARCH_SERVICE_H
+#define GNUNET_SEARCH_SERVICE_H
 
 #ifdef __cplusplus
 extern "C"
@@ -37,7 +37,7 @@ extern "C"
 /**
  * Version of the ext API.
  */
-#define GNUNET_EXT_VERSION 0x00000000
+#define GNUNET_SEARCH_VERSION 0x00000000
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

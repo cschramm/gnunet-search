@@ -20,9 +20,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 AC_PREREQ(2.61)
-AC_INIT([gnunet-ext],[0.0.0],[bug-gnunet@gnu.org])
-AM_INIT_AUTOMAKE([gnunet-ext], [0.0.0])
-AM_CONFIG_HEADER(gnunet_ext_config.h)
+AC_INIT([gnunet-search],[0.0.0],[bug-gnunet@gnu.org])
+AM_INIT_AUTOMAKE([gnunet-search], [0.0.0])
+AM_CONFIG_HEADER(gnunet_search_config.h)
 
 AH_TOP([#define _GNU_SOURCE  1])
 
@@ -187,5 +187,5 @@ AC_OUTPUT([ po/Makefile.in
 Makefile
 src/Makefile
 src/include/Makefile
-src/ext/Makefile
+src/search/Makefile
 ])

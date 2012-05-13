@@ -25,7 +25,7 @@
  */
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
-#include "gnunet_protocols_ext.h"
+#include "gnunet_protocols_search.h"
 
 /**
  * Our configuration.

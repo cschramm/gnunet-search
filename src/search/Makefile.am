@@ -5,45 +5,45 @@ INCLUDES = \
   -I$(top_srcdir) \
   @GNUNET_CFLAGS@ 
 
-lib_LTLIBRARIES = libgnunetext.la
+lib_LTLIBRARIES = libgnunetsearch.la
 
-libgnunetext_la_SOURCES = \
-  ext_api.c 
-libgnunetext_la_LIBADD = \
+libgnunetsearch_la_SOURCES = \
+  search_api.c 
+libgnunetsearch_la_LIBADD = \
   -lgnunetutil
-libgnunetext_la_LDFLAGS = \
+libgnunetsearch_la_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) \
   -version-info 0:0:0
 
 
-bin_PROGRAMS = gnunet-service-ext gnunet-ext
+bin_PROGRAMS = gnunet-service-search gnunet-search
 
-gnunet_service_ext_SOURCES = \
-  gnunet-service-ext.c
-gnunet_service_ext_LDADD = \
+gnunet_service_search_SOURCES = \
+  gnunet-service-search.c
+gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore\
   $(INTLLIBS) 
-gnunet_service_ext_LDFLAGS = \
+gnunet_service_search_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) -export-dynamic 
 
-gnunet_ext_SOURCES = \
-  gnunet-ext.c
-gnunet_ext_LDADD = \
+gnunet_search_SOURCES = \
+  gnunet-search.c
+gnunet_search_LDADD = \
   -lgnunetutil \
   $(INTLLIBS) 
-gnunet_ext_LDFLAGS = \
+gnunet_search_LDFLAGS = \
  $(GNUNET_LIBS) $(WINFLAGS) -export-dynamic 
 
 
 check_PROGRAMS = \
- test_ext_api 
+ test_search_api 
 
 TESTS = $(check_PROGRAMS)
 
-test_ext_api_SOURCES = \
- test_ext_api.c
-test_ext_api_LDADD = \
-  $(top_builddir)/src/ext/libgnunetext.la \
+test_search_api_SOURCES = \
+ test_search_api.c
+test_search_api_LDADD = \
+  $(top_builddir)/src/search/libgnunetsearch.la \
   -lgnunetutil
-test_ext_api_LDFLAGS = \
+test_search_api_LDFLAGS = \
  $(GNUNET_LIBS)  $(WINFLAGS) -export-dynamic 

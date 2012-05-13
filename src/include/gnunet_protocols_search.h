@@ -19,13 +19,13 @@
 */
 
 /**
- * @file include/gnunet_protocols_ext.h
+ * @file include/gnunet_protocols_search.h
  * @brief constants for network protocols
  * @author 
  */
 
-#ifndef GNUNET_PROTOCOLS_EXT_H
-#define GNUNET_PROTOCOLS_EXT_H
+#ifndef GNUNET_PROTOCOLS_SEARCH_H
+#define GNUNET_PROTOCOLS_SEARCH_H
 
 #ifdef __cplusplus
 extern "C"

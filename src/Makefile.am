@@ -1,2 +1,2 @@
-SUBDIRS = include ext .
+SUBDIRS = include search .
 

@@ -23,7 +23,7 @@
  */
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
-#include "gnunet_ext_service.h"
+#include "gnunet_search_service.h"
 
 
 static void

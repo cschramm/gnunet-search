@@ -19,13 +19,13 @@
 */
 
 /**
- * @file ext/gnunet-ext.c
+ * @file search/gnunet-search.c
  * @brief ext tool
  * @author 
  */
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
-#include "gnunet_ext_service.h"
+#include "gnunet_search_service.h"
 
 static int ret;
 
@@ -68,4 +68,4 @@ main (int argc, char *const *argv)
                               options, &run, NULL)) ? ret : 1;
 }
 
-/* end of gnunet-ext.c */
+/* end of gnunet-search.c */
