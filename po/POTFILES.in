@@ -1,0 +1,2 @@
+# List of source files which contain translatable strings.
+src/ext/gnunet-ext.c
