@@ -40,7 +40,7 @@ extern "C"
 /**
  * EXT message
  */
-#define GNUNET_MESSAGE_TYPE_EXT 32000
+#define GNUNET_MESSAGE_TYPE_SEARCH 0x4242
 
 
 

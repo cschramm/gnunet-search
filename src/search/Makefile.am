@@ -21,7 +21,7 @@ bin_PROGRAMS = gnunet-service-search gnunet-search
 gnunet_service_search_SOURCES = \
   gnunet-service-search.c
 gnunet_service_search_LDADD = \
-  -lgnunetutil -lgnunetcore\
+  -lgnunetutil -lgnunetcore -lgnunetdht\
   $(INTLLIBS) 
 gnunet_service_search_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) -export-dynamic 
