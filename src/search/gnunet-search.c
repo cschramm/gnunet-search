@@ -25,9 +25,24 @@
  */
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
+#include <gnunet/gnunet_client_lib.h>
 #include "gnunet_search_service.h"
 
 static int ret;
+static struct GNUNET_CLIENT_Connection *client_connection;
+
+static size_t transmit_ready(void *cls, size_t size, void *buf) {
+	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*)buf;
+
+	size_t msg_size = sizeof(struct GNUNET_MessageHeader);
+
+	header->type = 0x4242;
+	header->size = htons(msg_size);
+
+	printf("xD\n");
+
+	return msg_size;
+}
 
 /**
  * Main function that will be run by the scheduler.
@@ -40,6 +55,14 @@ static int ret;
 static void run(void *cls, char * const *args, const char *cfgfile,
 		const struct GNUNET_CONFIGURATION_Handle *cfg) {
 	ret = 0;
+
+	printf(":-)\n");
+
+	client_connection = GNUNET_CLIENT_connect("search", cfg);
+
+	GNUNET_CLIENT_notify_transmit_ready(client_connection,
+			sizeof(struct GNUNET_MessageHeader),
+			GNUNET_TIME_relative_get_forever(), 1, &transmit_ready, NULL);
 }
 
 /**
@@ -53,9 +76,9 @@ int main(int argc, char * const *argv) {
 	static const struct GNUNET_GETOPT_CommandLineOption options[] = {
 			GNUNET_GETOPT_OPTION_END };
 	return (GNUNET_OK
-			== GNUNET_PROGRAM_run(argc, argv, "gnunet-ext [options [value]]",
+			== GNUNET_PROGRAM_run(argc, argv, "gnunet-search [options [value]]",
 					gettext_noop
-					("ext"), options, &run, NULL)) ? ret : 1;
+					("search"), options, &run, NULL)) ? ret : 1;
 }
 
 /* end of gnunet-search.c */

@@ -38,7 +38,7 @@ extern "C"
 
 
 /**
- * EXT message
+ * SEARCH message
  */
 #define GNUNET_MESSAGE_TYPE_SEARCH 0x4242
 

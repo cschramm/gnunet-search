@@ -77,9 +77,11 @@ static void search_dht_url_list_put(char **urls, size_t size) {
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static void handle_ext(void *cls, struct GNUNET_SERVER_Client *client,
+static void handle_search(void *cls, struct GNUNET_SERVER_Client *client,
 		const struct GNUNET_MessageHeader *message) {
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
+
+	printf("blah :-)\n");
 }
 
 /**
@@ -112,7 +114,7 @@ static void handle_client_disconnect(void *cls,
 static void run(void *cls, struct GNUNET_SERVER_Handle *server,
 		const struct GNUNET_CONFIGURATION_Handle *c) {
 	static const struct GNUNET_SERVER_MessageHandler handlers[] = { {
-			&handle_ext, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 },
+			&handle_search, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 },
 			{ NULL, NULL, 0, 0 } };
 	cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
