@@ -38,9 +38,10 @@ extern "C"
 
 
 /**
- * SEARCH message
+ * SEARCH messages
  */
-#define GNUNET_MESSAGE_TYPE_SEARCH 0x4242
+#define GNUNET_MESSAGE_TYPE_SEARCH_URLS 0x4242
+#define GNUNET_MESSAGE_TYPE_SEARCH_KEYWORD 0x4243
 
 
 

@@ -27,16 +27,30 @@
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_client_lib.h>
 #include "gnunet_search_service.h"
+#include "gnunet_protocols_search.h"
 
 static int ret;
 static struct GNUNET_CLIENT_Connection *client_connection;
 
+static char *action_string;
+static char *file_string;
+
+static struct search_command {
+		unsigned char action;
+		void *data;
+};
+
+static struct message {
+		void *data;
+		size_t size;
+};
+
 static size_t transmit_ready(void *cls, size_t size, void *buf) {
-	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*)buf;
+	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) buf;
 
 	size_t msg_size = sizeof(struct GNUNET_MessageHeader);
 
-	header->type = 0x4242;
+	header->type = GNUNET_MESSAGE_TYPE_SEARCH_URLS;
 	header->size = htons(msg_size);
 
 	printf("xD\n");
@@ -56,7 +70,10 @@ static void run(void *cls, char * const *args, const char *cfgfile,
 		const struct GNUNET_CONFIGURATION_Handle *cfg) {
 	ret = 0;
 
-	printf(":-)\n");
+//	printf("action: %s\n", action_string);
+//	printf("file: %s\n", file_string);
+
+
 
 	client_connection = GNUNET_CLIENT_connect("search", cfg);
 
@@ -64,6 +81,12 @@ static void run(void *cls, char * const *args, const char *cfgfile,
 			sizeof(struct GNUNET_MessageHeader),
 			GNUNET_TIME_relative_get_forever(), 1, &transmit_ready, NULL);
 }
+
+//static int cmdline_processor(
+//		struct GNUNET_GETOPT_CommandLineProcessorContext * ctx, void *scls,
+//		const char *option, const char *value) {
+//	printf("option: %s, value: %s", option, value);
+//}
 
 /**
  * The main function to ext.
@@ -73,12 +96,17 @@ static void run(void *cls, char * const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int main(int argc, char * const *argv) {
-	static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-			GNUNET_GETOPT_OPTION_END };
+	static const struct GNUNET_GETOPT_CommandLineOption options[] =
+			{ { 'a', "action", "search|add",
+					gettext_noop("search for keyword or add list of urls"), 1,
+					&GNUNET_GETOPT_set_string, &action_string }, { 'u', "urls",
+					"path/to/file",
+					gettext_noop("specify the file containing urls"), 1,
+					&GNUNET_GETOPT_set_string, &file_string },
+					GNUNET_GETOPT_OPTION_END };
 	return (GNUNET_OK
 			== GNUNET_PROGRAM_run(argc, argv, "gnunet-search [options [value]]",
-					gettext_noop
-					("search"), options, &run, NULL)) ? ret : 1;
+					gettext_noop("search"), options, &run, NULL)) ? ret : 1;
 }
 
 /* end of gnunet-search.c */

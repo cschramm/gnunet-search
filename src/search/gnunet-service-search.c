@@ -114,7 +114,7 @@ static void handle_client_disconnect(void *cls,
 static void run(void *cls, struct GNUNET_SERVER_Handle *server,
 		const struct GNUNET_CONFIGURATION_Handle *c) {
 	static const struct GNUNET_SERVER_MessageHandler handlers[] = { {
-			&handle_search, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 },
+			&handle_search, NULL, GNUNET_MESSAGE_TYPE_SEARCH_URLS, 0 },
 			{ NULL, NULL, 0, 0 } };
 	cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
