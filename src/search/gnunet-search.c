@@ -23,39 +23,68 @@
  * @brief ext tool
  * @author 
  */
+
+#include <stdlib.h>
+#include <stdio.h>
+
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_client_lib.h>
 #include "gnunet_search_service.h"
 #include "gnunet_protocols_search.h"
 
+#define GNUNET_SEARCH_ACTION_STRING_SEARCH "search"
+#define GNUNET_SEARCH_ACTION_STRING_ADD "add"
+
 static int ret;
 static struct GNUNET_CLIENT_Connection *client_connection;
 
 static char *action_string;
 static char *file_string;
-
-static struct search_command {
-		unsigned char action;
-		void *data;
-};
-
-static struct message {
-		void *data;
-		size_t size;
-};
+static char *keyword_string;
 
 static size_t transmit_ready(void *cls, size_t size, void *buf) {
+
+	size_t msg_size = sizeof(struct GNUNET_MessageHeader)
+			+ sizeof(struct search_command);
+
+	struct search_command *cmd = (struct search_command*) cls;
+	msg_size += cmd->size;
+
+	GNUNET_assert(size >= msg_size);
+
 	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) buf;
-
-	size_t msg_size = sizeof(struct GNUNET_MessageHeader);
-
 	header->type = GNUNET_MESSAGE_TYPE_SEARCH_URLS;
 	header->size = htons(msg_size);
 
-	printf("xD\n");
+	memcpy(buf + sizeof(struct GNUNET_MessageHeader), cls,
+			sizeof(struct search_command) + cmd->size);
+
+	//printf("End of transmit_ready()...\n");
 
 	return msg_size;
+}
+
+static void transmit_urls(const char *file) {
+
+}
+
+static void transmit_keyword(const char *keyword) {
+	struct search_command cmd;
+
+	size_t keyword_size = strlen(keyword) + 1;
+
+	cmd.action = GNUNET_SEARCH_ACTION_SEARCH;
+	cmd.size = keyword_size;
+
+	void *data = malloc(sizeof(struct search_command) + keyword_size);
+
+	memcpy(data, &cmd, sizeof(struct search_command));
+	memcpy(data + sizeof(struct search_command), keyword, keyword_size);
+
+	GNUNET_CLIENT_notify_transmit_ready(client_connection,
+			sizeof(struct GNUNET_MessageHeader),
+			GNUNET_TIME_relative_get_forever(), 1, &transmit_ready, data);
 }
 
 /**
@@ -73,13 +102,12 @@ static void run(void *cls, char * const *args, const char *cfgfile,
 //	printf("action: %s\n", action_string);
 //	printf("file: %s\n", file_string);
 
-
-
 	client_connection = GNUNET_CLIENT_connect("search", cfg);
 
-	GNUNET_CLIENT_notify_transmit_ready(client_connection,
-			sizeof(struct GNUNET_MessageHeader),
-			GNUNET_TIME_relative_get_forever(), 1, &transmit_ready, NULL);
+	if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_ADD))
+		transmit_keyword(keyword_string);
+	else if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
+		transmit_urls(file_string);
 }
 
 //static int cmdline_processor(
@@ -96,14 +124,15 @@ static void run(void *cls, char * const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int main(int argc, char * const *argv) {
-	static const struct GNUNET_GETOPT_CommandLineOption options[] =
-			{ { 'a', "action", "search|add",
-					gettext_noop("search for keyword or add list of urls"), 1,
-					&GNUNET_GETOPT_set_string, &action_string }, { 'u', "urls",
-					"path/to/file",
-					gettext_noop("specify the file containing urls"), 1,
-					&GNUNET_GETOPT_set_string, &file_string },
-					GNUNET_GETOPT_OPTION_END };
+	static const struct GNUNET_GETOPT_CommandLineOption options[] = { { 'a',
+			"action", "search|add",
+			gettext_noop("search for keyword or add list of urls"), 1,
+			&GNUNET_GETOPT_set_string, &action_string }, { 'u', "urls",
+			"path/to/file", gettext_noop("specify the file containing urls"), 1,
+			&GNUNET_GETOPT_set_string, &file_string }, { 'k', "keyword",
+			"keyword", gettext_noop("specify the keyword to search for"), 1,
+			&GNUNET_GETOPT_set_string, &keyword_string },
+			GNUNET_GETOPT_OPTION_END };
 	return (GNUNET_OK
 			== GNUNET_PROGRAM_run(argc, argv, "gnunet-search [options [value]]",
 					gettext_noop("search"), options, &run, NULL)) ? ret : 1;
