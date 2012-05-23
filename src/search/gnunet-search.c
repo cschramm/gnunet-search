@@ -43,7 +43,7 @@ static char *action_string;
 static char *file_string;
 static char *keyword_string;
 
-static size_t transmit_ready(void *cls, size_t size, void *buf) {
+static size_t transmit_ready(void *cls, size_t size, void *buffer) {
 
 	size_t msg_size = sizeof(struct GNUNET_MessageHeader)
 			+ sizeof(struct search_command);
@@ -53,11 +53,11 @@ static size_t transmit_ready(void *cls, size_t size, void *buf) {
 
 	GNUNET_assert(size >= msg_size);
 
-	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) buf;
+	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) buffer;
 	header->type = GNUNET_MESSAGE_TYPE_SEARCH_URLS;
 	header->size = htons(msg_size);
 
-	memcpy(buf + sizeof(struct GNUNET_MessageHeader), cls,
+	memcpy(buffer + sizeof(struct GNUNET_MessageHeader), cls,
 			sizeof(struct search_command) + cmd->size);
 
 	//printf("End of transmit_ready()...\n");
@@ -65,7 +65,66 @@ static size_t transmit_ready(void *cls, size_t size, void *buf) {
 	return msg_size;
 }
 
+static char **urls_read(const char *file) {
+	FILE *fh = fopen(file, "r");
+	if (fh == NULL) {
+		printf("Error opening file...");
+		return NULL;
+		/**
+		 * Todo: Handle error
+		 */
+	}
+
+	size_t urls_size = 32;
+	size_t urls_length = 0;
+	char **urls = (char**)malloc(sizeof(char*)*urls_size);
+
+	size_t line_size = 64;
+	size_t line_length = 0;
+	char *line = (char*)malloc(line_size);
+
+	while (!feof(fh)) {
+		char next;
+		fread(&next, 1, 1, fh);
+
+		if(line_length + 2 > line_size) {
+			line_size <<= 1;
+			line = realloc(line, line_size);
+		}
+
+		line[line_length++] = next;
+
+		if(next == '\n') {
+			line[line_length - 1] = 0;
+
+			//printf("%s\n", line);
+			if(urls_length + 1 > urls_size) {
+				urls_size <<= 1;
+				urls = (char**)realloc(urls, urls_size);
+			}
+			urls[urls_length] = (char*)malloc(line_length);
+			memcpy(urls[urls_length], line, line_length);
+			urls_length++;
+
+			line_length = 0;
+		}
+
+//		char *line;
+//		fscanf(fh, "%as", &line);
+//		printf("Read: %s", line);
+//		free(line);
+	}
+
+	free(line);
+
+	fclose(fh);
+
+	return urls;
+}
+
 static void transmit_urls(const char *file) {
+	printf("transmit_urls()\n");
+
 
 }
 
@@ -104,9 +163,9 @@ static void run(void *cls, char * const *args, const char *cfgfile,
 
 	client_connection = GNUNET_CLIENT_connect("search", cfg);
 
-	if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_ADD))
+	if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
 		transmit_keyword(keyword_string);
-	else if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
+	else if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_ADD))
 		transmit_urls(file_string);
 }
 
