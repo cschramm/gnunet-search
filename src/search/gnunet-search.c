@@ -65,11 +65,11 @@ static size_t transmit_ready(void *cls, size_t size, void *buffer) {
 	return msg_size;
 }
 
-static char **urls_read(const char *file) {
+static size_t urls_read(char ***urls, const char *file) {
 	FILE *fh = fopen(file, "r");
 	if (fh == NULL) {
 		printf("Error opening file...");
-		return NULL;
+		return 0;
 		/**
 		 * Todo: Handle error
 		 */
@@ -77,33 +77,37 @@ static char **urls_read(const char *file) {
 
 	size_t urls_size = 32;
 	size_t urls_length = 0;
-	char **urls = (char**)malloc(sizeof(char*)*urls_size);
+	*urls = (char**) malloc(sizeof(char*) * urls_size);
 
 	size_t line_size = 64;
 	size_t line_length = 0;
-	char *line = (char*)malloc(line_size);
+	char *line = (char*) malloc(line_size);
 
-	while (!feof(fh)) {
+	int eof;
+	while (!(eof = feof(fh))) {
 		char next;
-		fread(&next, 1, 1, fh);
+		size_t read = fread(&next, 1, 1, fh);
 
-		if(line_length + 2 > line_size) {
-			line_size <<= 1;
-			line = realloc(line, line_size);
+		if (read) {
+			if (line_length + 2 > line_size) {
+				line_size <<= 1;
+				line = realloc(line, line_size);
+			}
+			line[line_length++] = next;
 		}
 
-		line[line_length++] = next;
-
-		if(next == '\n') {
+		if (next == '\n' || eof) {
+			if(next == '\n')
+				line_length--;
 			line[line_length - 1] = 0;
 
 			//printf("%s\n", line);
-			if(urls_length + 1 > urls_size) {
+			if (urls_length + 1 > urls_size) {
 				urls_size <<= 1;
-				urls = (char**)realloc(urls, urls_size);
+				*urls = (char**) realloc(*urls, urls_size);
 			}
-			urls[urls_length] = (char*)malloc(line_length);
-			memcpy(urls[urls_length], line, line_length);
+			(*urls)[urls_length] = (char*) malloc(line_length);
+			memcpy(*(*urls + urls_length), line, line_length);
 			urls_length++;
 
 			line_length = 0;
@@ -119,12 +123,23 @@ static char **urls_read(const char *file) {
 
 	fclose(fh);
 
-	return urls;
+	return urls_length;
 }
 
 static void transmit_urls(const char *file) {
 	printf("transmit_urls()\n");
 
+	char **urls;
+	size_t urls_length = urls_read(&urls, file);
+
+	for (int i = 0; i < urls_length; ++i) {
+		printf("%s\n", urls[i]);
+	}
+
+	for (int i = 0; i < urls_length; ++i)
+		free(urls[i]);
+
+	free(urls);
 
 }
 
