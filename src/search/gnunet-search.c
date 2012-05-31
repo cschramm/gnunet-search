@@ -84,22 +84,23 @@ static size_t urls_read(char ***urls, const char *file) {
 	char *line = (char*) malloc(line_size);
 
 	int eof;
-	while (!(eof = feof(fh))) {
+	do {
 		char next;
 		size_t read = fread(&next, 1, 1, fh);
+		eof = feof(fh);
 
-		if (read) {
-			if (line_length + 2 > line_size) {
-				line_size <<= 1;
-				line = realloc(line, line_size);
-			}
-			line[line_length++] = next;
+		if (line_length + 1 + eof > line_size) {
+			line_size <<= 1;
+			line = realloc(line, line_size);
 		}
 
-		if (next == '\n' || eof) {
+		if (!eof)
+			line[line_length++] = next;
+
+		if ((next == '\n' || eof) && line_length > 0) {
 			if(next == '\n')
 				line_length--;
-			line[line_length - 1] = 0;
+			line[line_length++] = 0;
 
 			//printf("%s\n", line);
 			if (urls_length + 1 > urls_size) {
@@ -113,11 +114,11 @@ static size_t urls_read(char ***urls, const char *file) {
 			line_length = 0;
 		}
 
-//		char *line;
+		//		char *line;
 //		fscanf(fh, "%as", &line);
 //		printf("Read: %s", line);
 //		free(line);
-	}
+	} while(!eof);
 
 	free(line);
 
@@ -131,6 +132,24 @@ static void transmit_urls(const char *file) {
 
 	char **urls;
 	size_t urls_length = urls_read(&urls, file);
+
+//	void *serialized;
+//	size_t serialized_size;
+//	FILE *memstream = open_memstream(&serialized, &serialized_size);
+//
+//	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
+//
+//	for (int i = 0; i < urls_length; ++i)
+//		fwrite(urls[i], 1, strlen(urls[i]) + 1, memstream);
+//
+//	struct search_command *cmd = (struct search_command*)serialized;
+//
+//	fclose(memstream);
+//
+//	cmd->size = serialized_size;
+//	cmd->action = GNUNET_SEARCH_ACTION_ADD;
+//
+//	printf("%s - %lu\n", (char*)(serialized + sizeof(struct search_command)), serialized_size);
 
 	for (int i = 0; i < urls_length; ++i) {
 		printf("%s\n", urls[i]);
