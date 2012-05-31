@@ -164,24 +164,29 @@ static void transmit_urls(const char *file) {
 
 	free(urls);
 
+	/*
+	 * Todo: Fragmentation
+	 */
+
 }
 
 static void transmit_keyword(const char *keyword) {
-	struct search_command cmd;
+	void *serialized;
+	size_t serialized_size;
+	FILE *memstream = open_memstream(&serialized, &serialized_size);
 
-	size_t keyword_size = strlen(keyword) + 1;
+	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
+	fprintf(memstream, "%s", keyword);
 
-	cmd.action = GNUNET_SEARCH_ACTION_SEARCH;
-	cmd.size = keyword_size;
+	fclose(memstream);
 
-	void *data = malloc(sizeof(struct search_command) + keyword_size);
-
-	memcpy(data, &cmd, sizeof(struct search_command));
-	memcpy(data + sizeof(struct search_command), keyword, keyword_size);
+	struct search_command *cmd = (struct search_command*)serialized;
+	cmd->action = GNUNET_SEARCH_ACTION_SEARCH;
+	cmd->size = serialized_size;
 
 	GNUNET_CLIENT_notify_transmit_ready(client_connection,
-			sizeof(struct GNUNET_MessageHeader),
-			GNUNET_TIME_relative_get_forever(), 1, &transmit_ready, data);
+			sizeof(struct GNUNET_MessageHeader) + serialized_size,
+			GNUNET_TIME_relative_get_forever(), 1, &transmit_ready, serialized);
 }
 
 /**
