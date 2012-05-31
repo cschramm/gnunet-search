@@ -176,10 +176,7 @@ static void transmit_keyword(const char *keyword) {
 	FILE *memstream = open_memstream(&serialized, &serialized_size);
 
 	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
-	fprintf(memstream, "%s", keyword);
-
-	char null = 0;
-	fwrite(&null, 1, 1, memstream);
+	fwrite(keyword, 1, strlen(keyword) + 1, memstream);
 
 	fclose(memstream);
 
