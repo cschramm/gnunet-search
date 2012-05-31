@@ -45,8 +45,7 @@ static char *keyword_string;
 
 static size_t transmit_ready(void *cls, size_t size, void *buffer) {
 
-	size_t msg_size = sizeof(struct GNUNET_MessageHeader)
-			+ sizeof(struct search_command);
+	size_t msg_size = sizeof(struct GNUNET_MessageHeader);
 
 	struct search_command *cmd = (struct search_command*) cls;
 	msg_size += cmd->size;
@@ -57,8 +56,9 @@ static size_t transmit_ready(void *cls, size_t size, void *buffer) {
 	header->type = GNUNET_MESSAGE_TYPE_SEARCH_URLS;
 	header->size = htons(msg_size);
 
-	memcpy(buffer + sizeof(struct GNUNET_MessageHeader), cls,
-			sizeof(struct search_command) + cmd->size);
+	memcpy(buffer + sizeof(struct GNUNET_MessageHeader), cls, cmd->size);
+
+	free(cls);
 
 	//printf("End of transmit_ready()...\n");
 
@@ -87,7 +87,7 @@ static size_t urls_read(char ***urls, const char *file) {
 	do {
 		char next;
 		size_t read = fread(&next, 1, 1, fh);
-		eof = feof(fh);
+		eof = feof(fh) && !read;
 
 		if (line_length + 1 + eof > line_size) {
 			line_size <<= 1;
@@ -98,7 +98,7 @@ static size_t urls_read(char ***urls, const char *file) {
 			line[line_length++] = next;
 
 		if ((next == '\n' || eof) && line_length > 0) {
-			if(next == '\n')
+			if (next == '\n')
 				line_length--;
 			line[line_length++] = 0;
 
@@ -118,7 +118,7 @@ static size_t urls_read(char ***urls, const char *file) {
 //		fscanf(fh, "%as", &line);
 //		printf("Read: %s", line);
 //		free(line);
-	} while(!eof);
+	} while (!eof);
 
 	free(line);
 
@@ -133,27 +133,31 @@ static void transmit_urls(const char *file) {
 	char **urls;
 	size_t urls_length = urls_read(&urls, file);
 
-//	void *serialized;
-//	size_t serialized_size;
-//	FILE *memstream = open_memstream(&serialized, &serialized_size);
-//
-//	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
-//
-//	for (int i = 0; i < urls_length; ++i)
-//		fwrite(urls[i], 1, strlen(urls[i]) + 1, memstream);
-//
-//	struct search_command *cmd = (struct search_command*)serialized;
-//
-//	fclose(memstream);
-//
-//	cmd->size = serialized_size;
-//	cmd->action = GNUNET_SEARCH_ACTION_ADD;
-//
+	void *serialized;
+	size_t serialized_size;
+	FILE *memstream = open_memstream(&serialized, &serialized_size);
+
+	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
+
+	for (int i = 0; i < urls_length; ++i)
+		fwrite(urls[i], 1, strlen(urls[i]) + 1, memstream);
+
+	fclose(memstream);
+
+	struct search_command *cmd = (struct search_command*) serialized;
+
+	cmd->size = serialized_size;
+	cmd->action = GNUNET_SEARCH_ACTION_ADD;
+
 //	printf("%s - %lu\n", (char*)(serialized + sizeof(struct search_command)), serialized_size);
 
-	for (int i = 0; i < urls_length; ++i) {
-		printf("%s\n", urls[i]);
-	}
+//	for (int i = 0; i < urls_length; ++i) {
+//		printf("%s\n", urls[i]);
+//	}
+
+	GNUNET_CLIENT_notify_transmit_ready(client_connection,
+			sizeof(struct GNUNET_MessageHeader) + cmd->size,
+			GNUNET_TIME_relative_get_forever(), 1, &transmit_ready, serialized);
 
 	for (int i = 0; i < urls_length; ++i)
 		free(urls[i]);
