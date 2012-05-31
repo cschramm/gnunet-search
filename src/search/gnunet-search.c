@@ -128,7 +128,7 @@ static size_t urls_read(char ***urls, const char *file) {
 }
 
 static void transmit_urls(const char *file) {
-	printf("transmit_urls()\n");
+//	printf("transmit_urls()\n");
 
 	char **urls;
 	size_t urls_length = urls_read(&urls, file);
@@ -178,6 +178,9 @@ static void transmit_keyword(const char *keyword) {
 	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
 	fprintf(memstream, "%s", keyword);
 
+	char null = 0;
+	fwrite(&null, 1, 1, memstream);
+
 	fclose(memstream);
 
 	struct search_command *cmd = (struct search_command*)serialized;
@@ -226,6 +229,27 @@ static void run(void *cls, char * const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int main(int argc, char * const *argv) {
+//	char str[5];
+//	for (int i = 0; i < 5; ++i)
+//		str[i] = 42;
+//
+//	sprintf(str, "%s", "tut");
+//
+//	for (int i = 0; i < 5; ++i)
+//		printf("%d\n", str[i]);
+//
+//	char *str;
+//	size_t size;
+//
+//	FILE *stream = open_memstream(&str, &size);
+//
+//	fprintf(stream, "%s\\0", "tut");
+//
+//	fclose(stream);
+//
+//	for (int i = 0; i < size; ++i)
+//		printf("%d\n", str[i]);
+
 	static const struct GNUNET_GETOPT_CommandLineOption options[] = { { 'a',
 			"action", "search|add",
 			gettext_noop("search for keyword or add list of urls"), 1,

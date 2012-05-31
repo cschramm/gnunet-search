@@ -68,6 +68,11 @@ static void search_dht_url_list_put(char **urls, size_t size) {
 	}
 }
 
+static void search_cmd_keyword_get(char **keyword, struct search_command *cmd) {
+	*keyword = (char*)malloc(strlen(cmd + 1) + 1);
+	strcpy(*keyword, cmd + 1);
+}
+
 /**
  * Handle EXT-message.
  *
@@ -81,7 +86,19 @@ static void handle_search(void *cls, struct GNUNET_SERVER_Client *client,
 		const struct GNUNET_MessageHeader *message) {
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 
-	printf("blah :-)\n");
+	struct search_command *cmd = (struct search_command*)(message + 1);
+
+	printf("Command: action = %d, size = %lu\n", cmd->action, cmd->size);
+
+	if(cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
+		char *keyword;
+		search_cmd_keyword_get(&keyword, cmd);
+		printf("Keyword: %s\n", keyword);
+
+		free(keyword);
+	}
+
+//	printf("blah :-)\n");
 }
 
 /**
