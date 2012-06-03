@@ -139,6 +139,9 @@ static void transmit_urls(const char *file) {
 
 	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
 
+//	int64_t urls_length64 = urls_length;
+//	fwrite(&urls_length64, sizeof(urls_length64), 1, memstream);
+
 	for (int i = 0; i < urls_length; ++i)
 		fwrite(urls[i], 1, strlen(urls[i]) + 1, memstream);
 
@@ -157,7 +160,7 @@ static void transmit_urls(const char *file) {
 
 	GNUNET_CLIENT_notify_transmit_ready(client_connection,
 			sizeof(struct GNUNET_MessageHeader) + cmd->size,
-			GNUNET_TIME_relative_get_forever(), 1, &transmit_ready, serialized);
+			GNUNET_TIME_relative_get_forever_(), 1, &transmit_ready, serialized);
 
 	for (int i = 0; i < urls_length; ++i)
 		free(urls[i]);
@@ -186,7 +189,7 @@ static void transmit_keyword(const char *keyword) {
 
 	GNUNET_CLIENT_notify_transmit_ready(client_connection,
 			sizeof(struct GNUNET_MessageHeader) + serialized_size,
-			GNUNET_TIME_relative_get_forever(), 1, &transmit_ready, serialized);
+			GNUNET_TIME_relative_get_forever_(), 1, &transmit_ready, serialized);
 }
 
 /**

@@ -24,6 +24,8 @@
  * @author Christian Grothoff
  */
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <gnunet/platform.h>
@@ -47,14 +49,15 @@ static void search_dht_string_string_put(const char *key, const char *value) {
 
 	GNUNET_DHT_put(dht_handle, &hash, 2, GNUNET_DHT_RO_NONE,
 			GNUNET_BLOCK_TYPE_TEST, value_length + 1, value,
-			GNUNET_TIME_absolute_get_forever(),
-			GNUNET_TIME_relative_get_forever(), /*&message_sent_cont*/NULL, NULL);
+			GNUNET_TIME_absolute_get_forever_(),
+			GNUNET_TIME_relative_get_forever_(), /*&message_sent_cont*/NULL, NULL);
 }
 
 static void search_dht_url_list_put(char **urls, size_t size) {
+	char const *key_prefix = "search:url:";
+	size_t key_prefix_length = strlen(key_prefix);
+
 	for (int i = 0; i < size; ++i) {
-		const char *key_prefix = "search:url:";
-		size_t key_prefix_length = strlen(key_prefix);
 		size_t key_url_length = strlen(urls[i]);
 
 		char *key = (char*)malloc(key_prefix_length + key_url_length + 1);
@@ -62,15 +65,48 @@ static void search_dht_url_list_put(char **urls, size_t size) {
 		memcpy(key + key_prefix_length, urls[i], key_url_length);
 		key[key_prefix_length + key_url_length] = 0;
 
+		printf("Putting key %s...\n", key);
+
 		search_dht_string_string_put(key, urls[i]);
 
 		free(key);
 	}
 }
 
-static void search_cmd_keyword_get(char **keyword, struct search_command *cmd) {
+static void search_cmd_keyword_get(char **keyword, struct search_command const *cmd) {
 	*keyword = (char*)malloc(strlen(cmd + 1) + 1);
 	strcpy(*keyword, cmd + 1);
+}
+
+static size_t search_cmd_urls_get(char ***urls, struct search_command const *cmd) {
+	char const *urls_source = (char*)(cmd + 1);
+
+	size_t urls_length;
+	FILE *url_stream = open_memstream(urls, &urls_length);
+
+	size_t read_length = sizeof(struct search_command);
+	size_t urls_number = 0;
+	while(read_length < cmd->size) {
+		size_t url_length = strlen(urls_source);
+		char *url = (char*)malloc(url_length + 1);
+		memcpy(url, urls_source, url_length + 1);
+
+		fwrite(&url, sizeof(url), 1, url_stream);
+
+		read_length += url_length + 1;
+		urls_source += url_length + 1;
+		urls_number++;
+
+//		printf("url: %s\n", url);
+	}
+
+//	printf("read_length: %lu\n", read_length);
+
+	fclose(url_stream);
+
+//	printf("urls_length: %lu\n", urls_length);
+
+	return urls_number;
 }
 
 /**
@@ -88,6 +124,7 @@ static void handle_search(void *cls, struct GNUNET_SERVER_Client *client,
 
 	struct search_command *cmd = (struct search_command*)(message + 1);
 
+	printf("Message: size = %lu\n", htons(message->size));
 	printf("Command: action = %d, size = %lu\n", cmd->action, cmd->size);
 
 	if(cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
@@ -96,6 +133,16 @@ static void handle_search(void *cls, struct GNUNET_SERVER_Client *client,
 		printf("Keyword: %s\n", keyword);
 
 		free(keyword);
+	}
+	if(cmd->action == GNUNET_SEARCH_ACTION_ADD) {
+		char **urls;
+		size_t urls_length = search_cmd_urls_get(&urls, cmd);
+
+		search_dht_url_list_put(urls, urls_length);
+
+		for (size_t i = 0; i < urls_length; ++i)
+			free(urls[i]);
+		free(urls);
 	}
 
 //	printf("blah :-)\n");
@@ -140,6 +187,37 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server,
 			NULL);
 
 	dht_handle = GNUNET_DHT_connect(cfg, 3);
+
+//	char **urls;
+//	size_t urls_length;// = search_cmd_urls_get(&urls, cmd);
+//
+//	char *hugo = "http://www.heise.de/";
+////	char *hugoM = malloc(strlen(hugo) + 1);
+////	memcpy(hugoM, hugo, strlen(hugo) + 1);
+////
+//	char *inge = "http://www.google.de/";
+////	char *ingeM = malloc(strlen(inge) + 1);
+////	memcpy(ingeM, inge, strlen(inge) + 1);
+////
+//	char *egon = "http://www.golem.de/";
+////	char *egonM = malloc(strlen(egon) + 1);
+////	memcpy(egonM, egon, strlen(egon) + 1);
+//
+//	urls = (char**)malloc(sizeof(char*)*3);
+//	urls[0] = hugo;
+//	urls[1] = inge;
+//	urls[2] = egon;
+//	urls_length = 3;
+////
+//	search_dht_url_list_put(urls, urls_length);
+
+//	search_dht_string_string_put(hugoM, "lala");
+//	free(hugoM);
+//	search_dht_string_string_put(ingeM, "lala1");
+//	free(ingeM);
+//	search_dht_string_string_put(egonM, "lala2");
+//	free(egonM);
+
 }
 
 /**
