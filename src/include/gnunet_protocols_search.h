@@ -40,15 +40,22 @@ extern "C"
 /**
  * SEARCH messages
  */
-#define GNUNET_MESSAGE_TYPE_SEARCH_URLS 0x4242
-#define GNUNET_MESSAGE_TYPE_SEARCH_KEYWORD 0x4243
+#define GNUNET_MESSAGE_TYPE_SEARCH 0x4242
 
 #define GNUNET_SEARCH_ACTION_SEARCH 0x00
 #define GNUNET_SEARCH_ACTION_ADD 0x01
 
 struct search_command {
 	unsigned char action;
-	size_t size;
+	uint64_t size;
+} __attribute__((packed));
+
+#define GNUNET_SEARCH_RESPONSE_TYPE_RESULT 0x00
+#define GNUNET_SEARCH_RESPONSE_TYPE_DONE 0x01
+
+struct search_response {
+	unsigned char type;
+	uint64_t size;
 } __attribute__((packed));
 
 #if 0                           /* keep Emacsens' auto-indent happy */

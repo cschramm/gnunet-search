@@ -58,8 +58,8 @@ static void search_dht_string_string_put(const char *key, const char *value) {
 
 static void search_key_value_generate(char **key_value, const char *action,
 		const char *data) {
-	size_t key_value_length;
 
+	size_t key_value_length;
 	FILE *key_value_stream = open_memstream(key_value, &key_value_length);
 
 	fprintf(key_value_stream, "search:%s:%s", action, data);
@@ -83,8 +83,8 @@ static void search_dht_url_list_put(char **urls, size_t size) {
 
 static void search_cmd_keyword_get(char **keyword,
 		struct search_command const *cmd) {
-	*keyword = (char*) malloc(strlen(cmd + 1) + 1);
-	strcpy(*keyword, cmd + 1);
+	*keyword = (char*) malloc(strlen((char*)(cmd + 1)) + 1);
+	strcpy(*keyword, (char*)(cmd + 1));
 }
 
 static size_t search_cmd_urls_get(char ***urls,
@@ -119,8 +119,36 @@ static size_t search_cmd_urls_get(char ***urls,
 	return urls_number;
 }
 
-static void search_send_result(void *data, size_t size) {
+static size_t search_send_result_transmit_ready(void *cls, size_t size,
+		void *buffer) {
+	struct search_response *response = (struct search_response*) cls;
 
+	size_t message_size = sizeof(struct GNUNET_MessageHeader) + response->size;
+	void *message_buffer = malloc(message_size);
+
+	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*)message_buffer;
+	header->size = message_size;
+	header->type = GNUNET_MESSAGE_TYPE_SEARCH;
+
+	memcpy(message_buffer + sizeof(struct GNUNET_MessageHeader), response, response->size);
+
+	return message_size;
+}
+
+static void search_send_result(void const *data, size_t size,
+		struct GNUNET_SERVER_Client *client) {
+	size_t response_size = sizeof(struct search_response) + size;
+	void *response_buffer = malloc(response_size);
+
+	struct search_response *response = (struct search_response*) response_buffer;
+	response->type = GNUNET_SEARCH_RESPONSE_TYPE_RESULT;
+	response->size = response_size;
+
+	memcpy(response_buffer + sizeof(struct search_response), data, size);
+
+	GNUNET_SERVER_notify_transmit_ready(client, response_size,
+			GNUNET_TIME_relative_get_forever_(),
+			&search_send_result_transmit_ready, response_buffer);
 }
 
 static void search_dht_get_result_iterator_and_send_to_user(void *cls,
@@ -131,10 +159,11 @@ static void search_dht_get_result_iterator_and_send_to_user(void *cls,
 		unsigned int put_path_length, enum GNUNET_BLOCK_Type type, size_t size,
 		const void *data) {
 	printf("Got data: %s\n", data);
-	search_send_result(data, size);
+	search_send_result(data, size, (struct GNUNET_SERVER_Client *) cls);
 }
 
-static void search_dht_get_and_send_to_user(char const *keyword) {
+static void search_dht_get_and_send_to_user(char const *keyword,
+		struct GNUNET_SERVER_Client *client) {
 	char *key_value;
 	search_key_value_generate(&key_value, "keyword", keyword);
 
@@ -149,11 +178,12 @@ static void search_dht_get_and_send_to_user(char const *keyword) {
 
 	dht_get_handle = GNUNET_DHT_get_start(dht_handle, GNUNET_BLOCK_TYPE_TEST,
 			&hash, 3, GNUNET_DHT_RO_NONE, NULL, 0,
-			&search_dht_get_result_iterator_and_send_to_user, NULL);
+			&search_dht_get_result_iterator_and_send_to_user, client);
 }
 
-static void search_process(char const *keyword) {
-	search_dht_get_and_send_to_user(keyword);
+static void search_process(char const *keyword,
+		struct GNUNET_SERVER_Client *client) {
+	search_dht_get_and_send_to_user(keyword, client);
 }
 
 /**
@@ -179,7 +209,7 @@ static void handle_search(void *cls, struct GNUNET_SERVER_Client *client,
 		search_cmd_keyword_get(&keyword, cmd);
 		printf("Keyword: %s\n", keyword);
 
-		search_process(keyword);
+		search_process(keyword, client);
 
 		free(keyword);
 	}
@@ -227,7 +257,7 @@ static void handle_client_disconnect(void *cls,
 static void run(void *cls, struct GNUNET_SERVER_Handle *server,
 		const struct GNUNET_CONFIGURATION_Handle *c) {
 	static const struct GNUNET_SERVER_MessageHandler handlers[] = { {
-			&handle_search, NULL, GNUNET_MESSAGE_TYPE_SEARCH_URLS, 0 }, { NULL,
+			&handle_search, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL,
 			NULL, 0, 0 } };
 	cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);

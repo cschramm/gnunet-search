@@ -53,7 +53,7 @@ static size_t transmit_ready(void *cls, size_t size, void *buffer) {
 	GNUNET_assert(size >= msg_size);
 
 	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) buffer;
-	header->type = GNUNET_MESSAGE_TYPE_SEARCH_URLS;
+	header->type = GNUNET_MESSAGE_TYPE_SEARCH;
 	header->size = htons(msg_size);
 
 	memcpy(buffer + sizeof(struct GNUNET_MessageHeader), cls, cmd->size);
@@ -130,7 +130,7 @@ static size_t urls_read(char ***urls, const char *file) {
 static void transmit_urls(const char *file) {
 //	printf("transmit_urls()\n");
 
-	char **urls;
+	char **urls = NULL;
 	size_t urls_length = urls_read(&urls, file);
 
 	void *serialized;
