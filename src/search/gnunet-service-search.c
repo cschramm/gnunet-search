@@ -125,7 +125,7 @@ static size_t search_send_result_transmit_ready(void *cls, size_t size, void *bu
 	return message_size;
 }
 
-static void search_send_result(void const *data, size_t size, struct GNUNET_SERVER_Client *client) {
+static void search_send_result(void const *data, size_t size, char type, struct GNUNET_SERVER_Client *client) {
 	size_t message_size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response) + size;
 	void *message_buffer = malloc(message_size);
 
@@ -134,7 +134,7 @@ static void search_send_result(void const *data, size_t size, struct GNUNET_SERV
 	header->type = htons(GNUNET_MESSAGE_TYPE_SEARCH);
 
 	struct search_response *response = (struct search_response*) (message_buffer + sizeof(struct GNUNET_MessageHeader));
-	response->type = GNUNET_SEARCH_RESPONSE_TYPE_RESULT;
+	response->type = type;
 	response->size = sizeof(struct search_response) + size;
 
 	memcpy(message_buffer + sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response), data, size);
@@ -164,7 +164,7 @@ static void search_dht_get_result_iterator_and_send_to_user(void *cls, struct GN
 
 	//search_send_result("hallo", 6, (struct GNUNET_SERVER_Client *) cls);
 
-	search_send_result(data, size, (struct GNUNET_SERVER_Client *) cls);
+	search_send_result(data, size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT, (struct GNUNET_SERVER_Client *) cls);
 }
 
 static void search_dht_get_and_send_to_user(char const *keyword, struct GNUNET_SERVER_Client *client) {
@@ -222,6 +222,8 @@ static void handle_search(void *cls, struct GNUNET_SERVER_Client *client, const 
 		size_t urls_length = search_cmd_urls_get(&urls, cmd);
 
 		search_dht_url_list_put(urls, urls_length);
+
+		search_send_result(NULL, 0, GNUNET_SEARCH_RESPONSE_TYPE_DONE, client);
 
 		for (size_t i = 0; i < urls_length; ++i)
 			free(urls[i]);
