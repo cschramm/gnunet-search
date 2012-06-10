@@ -1,0 +1,3 @@
+gnukill() {
+kill -9 $(ps ax -o pid,command | grep "${1}" | grep -v grep | cut -d' ' -f1)
+}

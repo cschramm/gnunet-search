@@ -46,7 +46,7 @@ static char *keyword_string;
 static void receive_response(void *cls, const struct GNUNET_MessageHeader * msg) {
 	struct search_response *response = (struct search_response*)(msg + 1);
 
-	GNUNET_assert(htons(msg->size) > sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response));
+	GNUNET_assert(htons(msg->size) >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response));
 
 	switch(response->type) {
 		case GNUNET_SEARCH_RESPONSE_TYPE_DONE: {
@@ -62,6 +62,8 @@ static void receive_response(void *cls, const struct GNUNET_MessageHeader * msg)
 			result[result_length] = 0;
 
 			printf("Server result: %s\n", result);
+
+			free(result);
 		}
 	}
 }

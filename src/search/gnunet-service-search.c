@@ -117,7 +117,7 @@ static size_t search_send_result_transmit_ready(void *cls, size_t size, void *bu
 	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) cls;
 	size_t message_size = ntohs(header->size);
 
-	printf("Message size: %lu, available: %lu\n", message_size, size);
+//	printf("Message size: %lu, available: %lu\n", message_size, size);
 	GNUNET_assert(message_size <= size);
 
 	memcpy(buffer, cls, message_size);
@@ -139,9 +139,9 @@ static void search_send_result(void const *data, size_t size, char type, struct 
 
 	memcpy(message_buffer + sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response), data, size);
 
-	printf("Client: %lu\n", client);
-
-	printf("Requesting size: %lu\n", message_size);
+//	printf("Client: %lu\n", client);
+//
+//	printf("Requesting size: %lu\n", message_size);
 
 	GNUNET_SERVER_notify_transmit_ready(client, message_size, GNUNET_TIME_relative_get_forever_(),
 			&search_send_result_transmit_ready, message_buffer);
@@ -152,13 +152,13 @@ static void search_dht_get_result_iterator_and_send_to_user(void *cls, struct GN
 		const struct GNUNET_PeerIdentity * put_path, unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
 		size_t size, const void *data) {
 
-	char *dstr = malloc(size + 1);
-	memcpy(dstr, data, size);
-	dstr[size] = 0;
-	printf("Got data: %s\n", dstr);
-	free(dstr);
-
-	printf("Client: %lu\n", cls);
+//	char *dstr = malloc(size + 1);
+//	memcpy(dstr, data, size);
+//	dstr[size] = 0;
+//	printf("Got data: %s\n", dstr);
+//	free(dstr);
+//
+//	printf("Client: %lu\n", cls);
 
 	GNUNET_DHT_get_stop(dht_get_handle);
 
@@ -203,15 +203,14 @@ static void handle_search(void *cls, struct GNUNET_SERVER_Client *client, const 
 
 	struct search_command *cmd = (struct search_command*) (message + 1);
 
-	printf("Message: size = %lu\n", htons(message->size));
+	//printf("Message: size = %lu\n", htons(message->size));
 	printf("Command: action = %d, size = %lu\n", cmd->action, cmd->size);
 
 	if (cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
 		char *keyword;
 		search_cmd_keyword_get(&keyword, cmd);
-		printf("Keyword: %s\n", keyword);
 
-		printf("Client: %lu\n", client);
+		printf("Searching keyword: %s...\n", keyword);
 
 		search_process(keyword, client);
 
@@ -251,6 +250,26 @@ static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 static void handle_client_disconnect(void *cls, struct GNUNET_SERVER_Client * client) {
 }
 
+static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption options, enum GNUNET_BLOCK_Type type,
+		uint32_t hop_count, uint32_t desired_replication_level, unsigned int path_length,
+		const struct GNUNET_PeerIdentity *path, struct GNUNET_TIME_Absolute exp, const GNUNET_HashCode * key,
+		const void *data, size_t size) {
+	char const *prefix = "search:url:";
+	size_t prefix_length = strlen(prefix);
+	if(size < prefix_length + 1)
+		return;
+	if(!strncmp(prefix, data, prefix_length)) {
+		size_t url_length = size - prefix_length;
+		char *url = (char*)malloc(url_length + 1);
+		memcpy(url, data + prefix_length, url_length);
+		url[url_length] = 0;
+
+		printf("TODO: Crawl %s...\n", url);
+
+		free(url);
+	}
+}
+
 /**
  * Process statistics requests.
  *
@@ -267,6 +286,8 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
 
 	dht_handle = GNUNET_DHT_connect(cfg, 3);
+
+GNUNET_DHT_monitor_start(dht_handle, GNUNET_BLOCK_TYPE_TEST, NULL, NULL, NULL, &search_dht_monitor_put, NULL);
 
 //	char **urls;
 //	size_t urls_length;// = search_cmd_urls_get(&urls, cmd);
