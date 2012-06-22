@@ -33,6 +33,8 @@
 #include <gnunet/gnunet_dht_service.h>
 #include "gnunet_protocols_search.h"
 
+#include <mongoose/mongoose.h>
+
 /**
  * Our configuration.
  */
@@ -239,6 +241,7 @@ static void handle_search(void *cls, struct GNUNET_SERVER_Client *client, const 
  * @param tc unused
  */
 static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	mg_stop((struct mg_ctx*)cls);
 }
 
 /**
@@ -270,6 +273,18 @@ static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption option
 	}
 }
 
+struct mg_context * start_webserver(int localhost, unsigned short port) {
+	char address[16];
+	sprintf(address, "%s:%d", localhost ? "127.0.0.1" : "0.0.0.0", port);
+	const char *options[] = {
+		"document_root", "/var/lib/gnunet-search",
+		"listening_ports", address,
+		"authentication_domain", "TODO: hostname",
+		0
+	};
+	mg_start(0, 0, options);
+}
+
 /**
  * Process statistics requests.
  *
@@ -282,7 +297,7 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 			0 }, { NULL, NULL, 0, 0 } };
 	cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
-	GNUNET_SERVER_disconnect_notify(server, &handle_client_disconnect, NULL);
+	GNUNET_SERVER_disconnect_notify(server, &handle_client_disconnect, start_webserver(1, 8080));
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
 
 	dht_handle = GNUNET_DHT_connect(cfg, 3);

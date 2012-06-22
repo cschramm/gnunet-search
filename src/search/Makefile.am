@@ -1,4 +1,4 @@
-SUBDIRS = .
+SUBDIRS = www .
 
 INCLUDES = \
   -I$(top_srcdir)/src/include \
@@ -19,9 +19,11 @@ libgnunetsearch_la_LDFLAGS = \
 bin_PROGRAMS = gnunet-service-search gnunet-search
 
 gnunet_service_search_SOURCES = \
-  gnunet-service-search.c
+  gnunet-service-search.c \
+  mongoose/mongoose.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\
+  -lpthread \
   $(INTLLIBS) 
 gnunet_service_search_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) -export-dynamic 

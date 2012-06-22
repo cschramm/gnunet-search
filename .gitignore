@@ -25,4 +25,6 @@ src/search/.deps/
 src/search/.libs/
 src/search/gnunet-search
 src/search/gnunet-service-search
+src/search/www/.deps/
+src/search/www/index.cgi
 stamp-h1

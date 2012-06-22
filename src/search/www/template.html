@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>GNUnet Search | <?cs var:CGI.ServerName ?></title>
+		<link rel="stylesheet" href="bootstrap.min.css" type="text/css"/>
+		<link rel="stylesheet" href="style.css" type="text/css"/>
+		<!--[if lt IE 9]>
+			<script src="dist/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+	<body>
+		<header>
+			<img src="logo.png" alt="GNUnet"/>
+			GNUnet Search | <?cs var:CGI.ServerName ?>
+		</header>
+		<form action="" method="GET">
+			<input type="text" name="q" value="<?cs var:Query.q ?>"/>
+		</form>
+		<ul>
+			<?cs each:result = results ?>
+				<li><a href="<?cs var:result.url ?>"><?cs var:result.name ?></a></li>
+			<?cs /each ?>
+		</ul>
+	</body>
+</html>
