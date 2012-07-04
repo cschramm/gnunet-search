@@ -179,6 +179,7 @@ CPPFLAGS="$backup_CPPFLAGS"
 
 clearsilver=1
 zlib=0
+microhttpd=1
 for d in "/usr/include" "/usr/local/include" "{$prefix}/include"; do
 	if test -d "${d}/ClearSilver"; then
 		CS_INCLUDES="-I${d}/ClearSilver"
@@ -186,14 +187,21 @@ for d in "/usr/include" "/usr/local/include" "{$prefix}/include"; do
 done
 CPPFLAGS="${CPPFLAGS} ${CS_INCLUDES}"
 AC_CHECK_HEADERS([ClearSilver.h],, [clearsilver=0])
+AC_CHECK_HEADERS([microhttpd.h],, [microhttpd=0])
 AC_HAVE_LIBRARY([neo_cs],, [clearsilver=0])
 AC_HAVE_LIBRARY([neo_utl],, [clearsilver=0])
 AC_HAVE_LIBRARY([neo_cgi],, [clearsilver=0])
 AC_HAVE_LIBRARY([z], [zlib=1])
+AC_HAVE_LIBRARY([microhttpd],, [microhttpd=0])
 
 if test "x$clearsilver" == "x0"
 then
   AC_MSG_ERROR([gnunet-search requires ClearSilver])
+fi
+
+if test "x$microhttpd" == "x0"
+then
+  AC_MSG_ERROR([gnunet-search requires libmicrohttpd])
 fi
 
 if test "x$zlib" == "x0"

@@ -5,6 +5,9 @@ INCLUDES = \
   -I$(top_srcdir) \
   @GNUNET_CFLAGS@ 
 
+AM_CFLAGS = \
+  -DDATADIR=\""$(pkgdatadir)"\"
+
 lib_LTLIBRARIES = libgnunetsearch.la
 
 libgnunetsearch_la_SOURCES = \
@@ -20,10 +23,10 @@ bin_PROGRAMS = gnunet-service-search gnunet-search
 
 gnunet_service_search_SOURCES = \
   gnunet-service-search.c \
-  mongoose/mongoose.c
+  gnunet-service-search-web.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\
-  -lpthread \
+  -lmicrohttpd \
   $(INTLLIBS) 
 gnunet_service_search_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) -export-dynamic 
