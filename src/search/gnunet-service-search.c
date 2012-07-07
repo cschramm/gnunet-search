@@ -28,6 +28,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <crawl.h>
+
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_dht_service.h>
@@ -266,6 +268,23 @@ static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption option
 		char *url = (char*)malloc(url_length + 1);
 		memcpy(url, data + prefix_length, url_length);
 		url[url_length] = 0;
+
+		char **urls;
+		size_t urls_size;
+
+		char **keywords;
+		size_t keywords_size;
+
+		crawl_url_crawl(&keywords_size, &keywords, &urls_size, &urls, url);
+
+		for (size_t i = 0; i < urls_size; ++i)
+			free(urls[i]);
+
+		for (size_t i = 0; i < keywords_size; ++i)
+			free(keywords[i]);
+
+		free(urls);
+		free(keywords);
 
 		printf("TODO: Crawl %s...\n", url);
 

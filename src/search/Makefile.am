@@ -26,7 +26,7 @@ gnunet_service_search_SOURCES = \
   gnunet-service-search-web.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\
-  -lmicrohttpd \
+  -lmicrohttpd -lcrawl -lcurl \
   $(INTLLIBS) 
 gnunet_service_search_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) -export-dynamic 
