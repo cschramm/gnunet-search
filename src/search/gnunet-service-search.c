@@ -57,7 +57,7 @@ static void search_dht_string_string_put(const char *key, const char *value) {
 			GNUNET_TIME_absolute_get_forever_(), GNUNET_TIME_relative_get_forever_(), /*&message_sent_cont*/NULL, NULL);
 }
 
-static void search_key_value_generate(char **key_value, const char *action, const char *data) {
+static void search_key_value_generate_simple(char **key_value, const char *action, const char *data) {
 
 	size_t key_value_length;
 	FILE *key_value_stream = open_memstream(key_value, &key_value_length);
@@ -68,10 +68,21 @@ static void search_key_value_generate(char **key_value, const char *action, cons
 	fclose(key_value_stream);
 }
 
+static void search_key_value_generate(char **key_value, const char *action, unsigned int parameter, const char *data) {
+
+	size_t key_value_length;
+	FILE *key_value_stream = open_memstream(key_value, &key_value_length);
+
+	fprintf(key_value_stream, "search:%s:%u:%s", action, parameter, data);
+	fputc(0, key_value_stream);
+
+	fclose(key_value_stream);
+}
+
 static void search_dht_url_list_put(char **urls, size_t size) {
 	for (int i = 0; i < size; ++i) {
 		char *key_value;
-		search_key_value_generate(&key_value, "url", urls[i]);
+		search_key_value_generate(&key_value, "url", 5, urls[i]);
 
 		printf("Putting value %s...\n", key_value);
 
@@ -173,7 +184,7 @@ static void search_dht_get_result_iterator_and_send_to_user(void *cls, struct GN
 
 static void search_dht_get_and_send_to_user(char const *keyword, struct GNUNET_SERVER_Client *client) {
 	char *key_value;
-	search_key_value_generate(&key_value, "keyword", keyword);
+	search_key_value_generate_simple(&key_value, "keyword", keyword);
 
 	printf("Searching for: %s\n", key_value);
 
@@ -264,10 +275,24 @@ static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption option
 	if(size < prefix_length + 1)
 		return;
 	if(!strncmp(prefix, data, prefix_length)) {
-		size_t url_length = size - prefix_length;
+		size_t position = prefix_length;
+		unsigned int parameter = 0;
+		for (size_t i = prefix_length; i < size; ++i)
+			if(((char*)data)[i] == ':') {
+				char parameter_str[i - prefix_length + 1];
+				memcpy(parameter_str, data + prefix_length, (i - prefix_length));
+				parameter_str[i - prefix_length] = 0;
+				sscanf(parameter_str, "%u", &parameter);
+				position = i + 1;
+				break;
+			}
+
+		size_t url_length = size - position;
 		char *url = (char*)malloc(url_length + 1);
-		memcpy(url, data + prefix_length, url_length);
+		memcpy(url, data + position, url_length);
 		url[url_length] = 0;
+
+		printf("Parameter: %u; url: %s\n", parameter, url);
 
 		char **urls;
 		size_t urls_size;
