@@ -286,7 +286,7 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 	cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
 	GNUNET_SERVER_disconnect_notify(server, &handle_client_disconnect, NULL);
-	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, start_webserver(1, 8080));
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, start_webserver(1, 8080, c));
 
 	dht_handle = GNUNET_DHT_connect(cfg, 3);
 
