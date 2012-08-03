@@ -24,11 +24,10 @@
  * @author Christian Grothoff
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-#include <crawl.h>
 
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
@@ -36,26 +35,16 @@
 #include "gnunet_protocols_search.h"
 
 #include "gnunet-service-search-web.h"
+#include "url-processor/gnunet-search-url-processor.h"
+#include "util/gnunet-search-util.h"
 
 /**
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
-static struct GNUNET_DHT_Handle *dht_handle;
+
 
 static struct GNUNET_DHT_GetHandle *dht_get_handle;
-
-static void search_dht_string_string_put(const char *key, const char *value) {
-	size_t key_length = strlen(key);
-
-	GNUNET_HashCode hash;
-	GNUNET_CRYPTO_hash(key, key_length, &hash);
-
-	size_t value_length = strlen(value);
-
-	GNUNET_DHT_put(dht_handle, &hash, 2, GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_TEST, value_length + 1, value,
-			GNUNET_TIME_absolute_get_forever_(), GNUNET_TIME_relative_get_forever_(), /*&message_sent_cont*/NULL, NULL);
-}
 
 static void search_key_value_generate_simple(char **key_value, const char *action, const char *data) {
 
@@ -68,30 +57,6 @@ static void search_key_value_generate_simple(char **key_value, const char *actio
 	fclose(key_value_stream);
 }
 
-static void search_key_value_generate(char **key_value, const char *action, unsigned int parameter, const char *data) {
-
-	size_t key_value_length;
-	FILE *key_value_stream = open_memstream(key_value, &key_value_length);
-
-	fprintf(key_value_stream, "search:%s:%u:%s", action, parameter, data);
-	fputc(0, key_value_stream);
-
-	fclose(key_value_stream);
-}
-
-static void search_dht_url_list_put(char **urls, size_t size) {
-	for (int i = 0; i < size; ++i) {
-		char *key_value;
-		search_key_value_generate(&key_value, "url", 5, urls[i]);
-
-		printf("Putting value %s...\n", key_value);
-
-		search_dht_string_string_put(key_value, key_value);
-
-		free(key_value);
-	}
-}
-
 static void search_cmd_keyword_get(char **keyword, struct search_command const *cmd) {
 	*keyword = (char*) malloc(strlen((char*) (cmd + 1)) + 1);
 	strcpy(*keyword, (char*) (cmd + 1));
@@ -101,7 +66,7 @@ static size_t search_cmd_urls_get(char ***urls, struct search_command const *cmd
 	char const *urls_source = (char*) (cmd + 1);
 
 	size_t urls_length;
-	FILE *url_stream = open_memstream(urls, &urls_length);
+	FILE *url_stream = open_memstream((char**)urls, &urls_length);
 
 	size_t read_length = sizeof(struct search_command);
 	size_t urls_number = 0;
@@ -195,7 +160,7 @@ static void search_dht_get_and_send_to_user(char const *keyword, struct GNUNET_S
 
 	free(key_value);
 
-	dht_get_handle = GNUNET_DHT_get_start(dht_handle, GNUNET_BLOCK_TYPE_TEST, &hash, 3, GNUNET_DHT_RO_NONE, NULL, 0,
+	dht_get_handle = GNUNET_DHT_get_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, &hash, 3, GNUNET_DHT_RO_NONE, NULL, 0,
 			&search_dht_get_result_iterator_and_send_to_user, client);
 }
 
@@ -235,7 +200,7 @@ static void handle_search(void *cls, struct GNUNET_SERVER_Client *client, const 
 		char **urls;
 		size_t urls_length = search_cmd_urls_get(&urls, cmd);
 
-		search_dht_url_list_put(urls, urls_length);
+		search_dht_url_list_put(urls, urls_length, 2);
 
 		search_send_result(NULL, 0, GNUNET_SEARCH_RESPONSE_TYPE_DONE, client);
 
@@ -275,45 +240,7 @@ static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption option
 	if(size < prefix_length + 1)
 		return;
 	if(!strncmp(prefix, data, prefix_length)) {
-		size_t position = prefix_length;
-		unsigned int parameter = 0;
-		for (size_t i = prefix_length; i < size; ++i)
-			if(((char*)data)[i] == ':') {
-				char parameter_str[i - prefix_length + 1];
-				memcpy(parameter_str, data + prefix_length, (i - prefix_length));
-				parameter_str[i - prefix_length] = 0;
-				sscanf(parameter_str, "%u", &parameter);
-				position = i + 1;
-				break;
-			}
-
-		size_t url_length = size - position;
-		char *url = (char*)malloc(url_length + 1);
-		memcpy(url, data + position, url_length);
-		url[url_length] = 0;
-
-		printf("Parameter: %u; url: %s\n", parameter, url);
-
-		char **urls;
-		size_t urls_size;
-
-		char **keywords;
-		size_t keywords_size;
-
-		crawl_url_crawl(&keywords_size, &keywords, &urls_size, &urls, url);
-
-		for (size_t i = 0; i < urls_size; ++i)
-			free(urls[i]);
-
-		for (size_t i = 0; i < keywords_size; ++i)
-			free(keywords[i]);
-
-		free(urls);
-		free(keywords);
-
-		printf("TODO: Crawl %s...\n", url);
-
-		free(url);
+		gnunet_search_incoming_url_process(prefix_length, data, size);
 	}
 }
 
@@ -332,9 +259,9 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 	GNUNET_SERVER_disconnect_notify(server, &handle_client_disconnect, NULL);
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, start_webserver(1, 8080));
 
-	dht_handle = GNUNET_DHT_connect(cfg, 3);
+	gnunet_search_dht_handle = GNUNET_DHT_connect(cfg, 3);
 
-GNUNET_DHT_monitor_start(dht_handle, GNUNET_BLOCK_TYPE_TEST, NULL, NULL, NULL, &search_dht_monitor_put, NULL);
+GNUNET_DHT_monitor_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, NULL, NULL, NULL, &search_dht_monitor_put, NULL);
 
 //	char **urls;
 //	size_t urls_length;// = search_cmd_urls_get(&urls, cmd);

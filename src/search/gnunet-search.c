@@ -24,6 +24,7 @@
  * @author 
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -160,7 +161,7 @@ static void transmit_urls(const char *file) {
 
 	void *serialized;
 	size_t serialized_size;
-	FILE *memstream = open_memstream(&serialized, &serialized_size);
+	FILE *memstream = open_memstream((char**)&serialized, &serialized_size);
 
 	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
 
@@ -200,7 +201,7 @@ static void transmit_urls(const char *file) {
 static void transmit_keyword(const char *keyword) {
 	void *serialized;
 	size_t serialized_size;
-	FILE *memstream = open_memstream(&serialized, &serialized_size);
+	FILE *memstream = open_memstream((char**)&serialized, &serialized_size);
 
 	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
 	fwrite(keyword, 1, strlen(keyword) + 1, memstream);

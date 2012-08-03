@@ -18,11 +18,12 @@ libgnunetsearch_la_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) \
   -version-info 0:0:0
 
-
 bin_PROGRAMS = gnunet-service-search gnunet-search
 
 gnunet_service_search_SOURCES = \
   gnunet-service-search.c \
+  url-processor/gnunet-search-url-processor.c \
+  util/gnunet-search-util.c \
   gnunet-service-search-web.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\
@@ -38,7 +39,6 @@ gnunet_search_LDADD = \
   $(INTLLIBS) 
 gnunet_search_LDFLAGS = \
  $(GNUNET_LIBS) $(WINFLAGS) -export-dynamic 
-
 
 check_PROGRAMS = \
  test_search_api 
