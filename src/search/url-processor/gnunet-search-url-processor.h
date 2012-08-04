@@ -8,6 +8,6 @@
 #ifndef GNUNET_SEARCH_URL_PROCESSOR_H_
 #define GNUNET_SEARCH_URL_PROCESSOR_H_
 
-extern void gnunet_search_incoming_url_process(size_t prefix_length, const void *data, size_t size);
+extern void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, const void *data, size_t size);
 
 #endif /* GNUNET_SEARCH_URL_PROCESSOR_H_ */

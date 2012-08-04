@@ -16,7 +16,7 @@
 
 struct GNUNET_DHT_Handle *gnunet_search_dht_handle;
 
-static void search_dht_string_string_put(const char *key, const char *value) {
+static void gnunet_search_util_dht_string_string_put(const char *key, const char *value) {
 	size_t key_length = strlen(key);
 
 	GNUNET_HashCode hash;
@@ -28,7 +28,7 @@ static void search_dht_string_string_put(const char *key, const char *value) {
 			GNUNET_TIME_absolute_get_forever_(), GNUNET_TIME_relative_get_forever_(), /*&message_sent_cont*/NULL, NULL);
 }
 
-static void search_key_value_generate(char **key_value, const char *action, unsigned int parameter, const char *data) {
+static void gnunet_search_util_key_value_generate(char **key_value, const char *action, unsigned int parameter, const char *data) {
 	size_t key_value_length;
 	FILE *key_value_stream = open_memstream(key_value, &key_value_length);
 
@@ -38,14 +38,14 @@ static void search_key_value_generate(char **key_value, const char *action, unsi
 	fclose(key_value_stream);
 }
 
-void search_dht_url_list_put(char **urls, size_t size, unsigned int parameter) {
+void gnunet_search_util_dht_url_list_put(char **urls, size_t size, unsigned int parameter) {
 	for (int i = 0; i < size; ++i) {
 		char *key_value;
-		search_key_value_generate(&key_value, "url", parameter, urls[i]);
+		gnunet_search_util_key_value_generate(&key_value, "url", parameter, urls[i]);
 
 		printf("Putting value %s...\n", key_value);
 
-		search_dht_string_string_put(key_value, key_value);
+		gnunet_search_util_dht_string_string_put(key_value, key_value);
 
 		free(key_value);
 	}

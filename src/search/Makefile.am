@@ -24,6 +24,7 @@ gnunet_service_search_SOURCES = \
   gnunet-service-search.c \
   url-processor/gnunet-search-url-processor.c \
   util/gnunet-search-util.c \
+  client-communication/client-communication.c \
   gnunet-service-search-web.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\

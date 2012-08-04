@@ -14,11 +14,11 @@
 
 #include "../util/gnunet-search-util.h"
 
-void gnunet_search_incoming_url_process(size_t prefix_length, const void *data, size_t size) {
+void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void const *data, size_t size) {
 	size_t position = prefix_length;
 	unsigned int parameter = 0;
 	for (size_t i = prefix_length; i < size; ++i)
-		if(((char*)data)[i] == ':') {
+		if (((char*) data)[i] == ':') {
 			char parameter_str[i - prefix_length + 1];
 			memcpy(parameter_str, data + prefix_length, (i - prefix_length));
 			parameter_str[i - prefix_length] = 0;
@@ -28,7 +28,7 @@ void gnunet_search_incoming_url_process(size_t prefix_length, const void *data, 
 		}
 
 	size_t url_length = size - position;
-	char *url = (char*)malloc(url_length + 1);
+	char *url = (char*) malloc(url_length + 1);
 	memcpy(url, data + position, url_length);
 	url[url_length] = 0;
 
@@ -42,8 +42,8 @@ void gnunet_search_incoming_url_process(size_t prefix_length, const void *data, 
 
 	crawl_url_crawl(&keywords_size, &keywords, &urls_size, &urls, url);
 
-	if(parameter > 0)
-		search_dht_url_list_put(urls, urls_size, parameter - 1);
+	if (parameter > 0)
+		gnunet_search_util_dht_url_list_put(urls, urls_size, parameter - 1);
 
 	for (size_t i = 0; i < urls_size; ++i) {
 		printf("URL: %s\n", urls[i]);
