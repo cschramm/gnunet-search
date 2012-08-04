@@ -14,6 +14,9 @@
 		<form action="" method="GET">
 			<input type="text" name="q" value="<?cs var:html_escape(q) ?>"/>
 		</form>
+		<?cs if:error ?>
+			<div id="error">Could not connect to the gnunet-search service!</div>
+		<?cs /if ?>
 		<ul></ul>
 	</body>
 </html>

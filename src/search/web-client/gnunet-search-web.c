@@ -20,7 +20,7 @@
 
 /**
  * @file search/gnunet-service-search-web.c
- * @brief ext tool
+ * @brief search web server
  * @author Christopher Schramm
  */
 
@@ -41,7 +41,6 @@
 #include <jansson.h>
 
 #include "gnunet_protocols_search.h"
-#include "gnunet-service-search-web.h"
 
 /**
  * The context of the request to be rendered
@@ -58,6 +57,35 @@ struct request_context {
 struct query_context {
 	char *query;
 	struct webserver_context *server_context;
+};
+
+/**
+ * Representation of a local file
+ */
+struct local_file {
+	char * name;
+	char * type;
+	struct local_file * next;
+};
+
+/**
+ * Result set for a specific query
+ */
+struct search_results {
+	char *query;
+	unsigned int num;
+	struct search_results * next;
+	char **results;
+};
+
+/**
+ * webserver context
+ */
+struct webserver_context {
+	struct local_file * first_local_file; //!< pointer to a linked list of local files
+	struct search_results * first_results; //!< pointer to a linked list of search result sets
+	struct search_results * last_results; //!< pointer to the last element of the search result set list
+	const struct GNUNET_CONFIGURATION_Handle * gnunet_cfg; //!< GNUnet configuration handle
 };
 
 /**
@@ -129,7 +157,7 @@ struct MHD_Response * serve_file(const struct webserver_context * server_context
  * @param context request context to update
  * @param q search query
  */
-void render_page(struct request_context * context, const char *q) {
+void render_page(struct request_context * context, const char *q, int error) {
 	HDF *hdf;
 	CSPARSE *parse;
 	
@@ -138,6 +166,7 @@ void render_page(struct request_context * context, const char *q) {
 	cgi_register_strfuncs(parse);
 
 	hdf_set_value(hdf, "q", q);
+	hdf_set_int_value(hdf, "error", error);
 	char hostname[256];
 	gethostname(hostname, 256);
 	hdf_set_value(hdf, "hostname", hostname);
@@ -160,6 +189,13 @@ void render_page(struct request_context * context, const char *q) {
 	}
 }
 
+struct search_results * lookup_results(struct search_results * results_list, const char *query) {
+	for (struct search_results * current = results_list; current; current = current->next)
+		if (!strcmp(current->query, query))
+			return current;
+	return 0;
+}
+
 /**
  * Extract results from GNUnet message
  *
@@ -179,20 +215,37 @@ void receive_response(void *cls, const struct GNUNET_MessageHeader * msg) {
 	GNUNET_assert(response->size >= sizeof(struct search_response));
 	size_t result_length = response->size - sizeof(struct search_response);
 
-	struct search_results * results = GNUNET_malloc(sizeof(struct search_results));
-	results->next = 0;
+	// already received results for this query?
+	struct search_results * results = lookup_results(context->server_context->first_results, context->query);
 
-	if (context->server_context->first_results)
-		context->server_context->last_results->next = results;
-	else
-		context->server_context->first_results = results;
-	context->server_context->last_results = results;
+	if (results) {
+		// skip if this result is already known
+		for (unsigned int i = 0; i < results->num; i++)
+			if (!strncmp(results->results[0], (const char *)response + 1, result_length))
+				return;
+		// extend results array otherwise
+		GNUNET_realloc(results->results, ++results->num * sizeof(char *));
+	} else {
+		// build new result set
+		results = GNUNET_malloc(sizeof(struct search_results));
+		results->next = 0;
+		results->query = GNUNET_strdup(context->query);
+		results->results = GNUNET_malloc(sizeof(char *));
+		results->num = 1;
 
-	results->query = context->query;
+		if (context->server_context->first_results)
+			context->server_context->last_results->next = results;
+		else
+			context->server_context->first_results = results;
+		context->server_context->last_results = results;
+	}
 
-	results->result = (char*)GNUNET_malloc(result_length + 1);
-	memcpy(results->result, response + 1, result_length);
-	results->result[result_length] = 0;
+	// copy result into repective array
+	results->results[results->num - 1] = (char*)GNUNET_malloc(result_length + 1);
+	memcpy(results->results[results->num - 1], response + 1, result_length);
+	results->results[results->num - 1][result_length] = 0;
+
+	free(context);
 }
 
 /**
@@ -206,17 +259,15 @@ void receive_response(void *cls, const struct GNUNET_MessageHeader * msg) {
 void render_results(struct webserver_context * server_context, struct request_context * context, const char *q, int o) {
 	context->status = MHD_HTTP_OK;
 	context->type = "text/html";
-	context->output = GNUNET_strdup("");
-	if (server_context->first_results) {
-                for (struct search_results * current = server_context->first_results; current; current = current->next) {
-			if (!strcmp(current->query, q)) {
-				free(context->output);
-				// TODO: use offset
-				context->output = GNUNET_strdup(current->result);
-				return;
-			}
-		}
-	}
+	
+	json_t *arr = json_array();
+
+	struct search_results * results = lookup_results(server_context->first_results, q);
+	if (results)
+		for (unsigned int i = o; i < results->num; i++)
+			json_array_append_new(arr, json_string(results->results[i]));
+
+	context->output = json_dumps(arr, 0);
 }
 
 size_t transmit_ready(void *cls, size_t size, void *buffer) {
@@ -238,8 +289,18 @@ size_t transmit_ready(void *cls, size_t size, void *buffer) {
 	return msg_size;
 }
 
-void start_search(struct webserver_context * server_context, const char *q) {
+/**
+ * Query service
+ *
+ * @param server_context webserver context to store results in
+ * @param q query string
+ * @return 0 on success, 1 on error
+ */
+int start_search(struct webserver_context * server_context, const char *q) {
 	struct GNUNET_CLIENT_Connection *client_connection = GNUNET_CLIENT_connect("search", server_context->gnunet_cfg);
+
+	if (!client_connection)
+		return 1;
 
 	char *serialized;
 	size_t serialized_size;
@@ -254,12 +315,14 @@ void start_search(struct webserver_context * server_context, const char *q) {
 	cmd->action = GNUNET_SEARCH_ACTION_SEARCH;
 	cmd->size = serialized_size;
 
-	//GNUNET_CLIENT_notify_transmit_ready(client_connection, sizeof(struct GNUNET_MessageHeader) + serialized_size, GNUNET_TIME_relative_get_forever_(), 1, &transmit_ready, serialized);
+	GNUNET_CLIENT_notify_transmit_ready(client_connection, sizeof(struct GNUNET_MessageHeader) + serialized_size, GNUNET_TIME_relative_get_forever_(), 1, &transmit_ready, serialized);
 
 	struct query_context * context = GNUNET_malloc(sizeof(struct query_context));
 	context->query = GNUNET_strdup(q);
 	context->server_context = server_context;
-	//GNUNET_CLIENT_receive(client_connection, &receive_response, context, GNUNET_TIME_relative_get_forever_());
+	GNUNET_CLIENT_receive(client_connection, &receive_response, context, GNUNET_TIME_relative_get_forever_());
+
+	return 0;
 }
 
 /**
@@ -286,8 +349,8 @@ int uri_handler(void *cls, struct MHD_Connection *connection, const char *url, c
 	if (!response) {
 		if (!strcmp(url, "/")) {
 			const char *q = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "q");
-			start_search(server_context, q);
-			render_page(context, q);
+			int error = q && start_search(server_context, q);
+			render_page(context, q, error);
 		} else if (!strcmp(url, "/results")) {
 			render_results(server_context, context, MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "q"), atoi(MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "o")));
 		} else {
@@ -304,13 +367,37 @@ int uri_handler(void *cls, struct MHD_Connection *connection, const char *url, c
 	return ret;
 }
 
-struct webserver_context * start_webserver(int localhost, unsigned short port, struct GNUNET_CONFIGURATION_Handle * gnunet_cfg) {
+/**
+ * Task run during shutdown.
+ *
+ *
+ * @param cls the webserver context
+ * @param tc unused
+ */
+void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	MHD_stop_daemon(cls);
+}
+
+unsigned int port = 8080;
+int local = 0;
+
+/**
+ * Main function that will be run by the scheduler
+ *
+ * Gather list of local files and start libmicrohttpd server
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param cfg configuration
+ */
+void run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
 	struct webserver_context * context = GNUNET_malloc(sizeof(struct webserver_context));
 	
 	context->first_local_file = 0;
 	context->first_results = 0;
 
-	context->gnunet_cfg = gnunet_cfg;
+	context->gnunet_cfg = cfg;
 	
 	struct local_file * current = 0;
 	struct dirent * dirent;
@@ -334,6 +421,8 @@ struct webserver_context * start_webserver(int localhost, unsigned short port, s
 					current->type = "image/png";
 				else if (!strcmp(ext, ".css"))
 					current->type = "text/css";
+				else if (!strcmp(ext, ".js"))
+					current->type = "text/javascript";
 			}
 			current->next = 0;
 		}
@@ -343,35 +432,41 @@ struct webserver_context * start_webserver(int localhost, unsigned short port, s
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
-	addr.sin_addr.s_addr = localhost ? inet_addr("127.0.0.1") : INADDR_ANY;
+	addr.sin_addr.s_addr = local ? inet_addr("127.0.0.1") : INADDR_ANY;
 	
-	context->daemon = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, port, 0, 0, uri_handler, context, MHD_OPTION_SOCK_ADDR, &addr, MHD_OPTION_END);
-	
-	return context;
+	struct MHD_Daemon * daemon = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, port, 0, 0, uri_handler, context, MHD_OPTION_SOCK_ADDR, &addr, MHD_OPTION_END);
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, daemon);
 }
 
-void stop_webserver(struct webserver_context * context) {
-	if (context->first_local_file) {
-		struct local_file * current = context->first_local_file;
-		struct local_file * next = context->first_local_file->next;
-		while (next) {
-			next = current->next;
-			free(current);
-			current = next;
-		}
-	}
+/**
+ * The main function
+ *
+ * @param argc number of arguments from command line
+ * @param argv command line arguments
+ * @return 0 ok, 1 on error
+ */
+int main(int argc, char * const *argv) {
+	static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+		{
+			'p',
+			"port",
+			"port",
+			gettext_noop("TCP port to listen on. Defaults to 8080"),
+			0,
+			&GNUNET_GETOPT_set_uint,
+			&port
+		},
+		{
+			's',
+			"local",
+			0,
+			gettext_noop("only listen on localhost"),
+			0,
+			&GNUNET_GETOPT_set_one,
+			&local
+		},
+		GNUNET_GETOPT_OPTION_END
+	};
 
-	if (context->first_results) {
-		struct search_results * current = context->first_results;
-		struct search_results * next = context->first_results->next;
-		while (next) {
-			next = current->next;
-			free(current);
-			current = next;
-		}
-	}
-	
-	MHD_stop_daemon(context->daemon);
-	
-	free(context);
+	return GNUNET_PROGRAM_run(argc, argv, "gnunet-search-web [options]", gettext_noop("GNUnet search webserver"), options, &run, 0);
 }

@@ -1,4 +1,4 @@
-SUBDIRS = www .
+SUBDIRS = .
 
 INCLUDES = \
   -I$(top_srcdir)/src/include \
@@ -18,20 +18,27 @@ libgnunetsearch_la_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) \
   -version-info 0:0:0
 
-bin_PROGRAMS = gnunet-service-search gnunet-search
+bin_PROGRAMS = gnunet-service-search gnunet-search gnunet-search-web
 
 gnunet_service_search_SOURCES = \
   service/gnunet-service-search.c \
   service/url-processor/gnunet-search-url-processor.c \
   service/util/gnunet-search-util.c \
-  service/client-communication/client-communication.c \
-  gnunet-service-search-web.c
+  service/client-communication/client-communication.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\
-  -lmicrohttpd -lcrawl -lcurl \
+  -lcrawl -lcurl \
   $(INTLLIBS) 
 gnunet_service_search_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) -export-dynamic 
+
+gnunet_search_web_SOURCES = \
+  web-client/gnunet-search-web.c
+gnunet_search_web_LDADD = \
+  -lmicrohttpd \
+  $(INTLLIBS)
+gnunet_search_web_LDFLAGS = \
+  $(GNUNET_LIBS) $(WINFLAGS) -export-dynamic
 
 gnunet_search_SOURCES = \
   cli-client/gnunet-search.c
@@ -40,6 +47,8 @@ gnunet_search_LDADD = \
   $(INTLLIBS) 
 gnunet_search_LDFLAGS = \
  $(GNUNET_LIBS) $(WINFLAGS) -export-dynamic 
+
+dist_pkgdata_DATA = web-client/www/*
 
 check_PROGRAMS = \
  test_search_api 

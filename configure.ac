@@ -228,5 +228,4 @@ Makefile
 src/Makefile
 src/include/Makefile
 src/search/Makefile
-src/search/www/Makefile
 ])

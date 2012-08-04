@@ -24,5 +24,6 @@ po/stamp-po
 src/search/.deps/
 src/search/.libs/
 src/search/gnunet-search
+src/search/gnunet-search-web
 src/search/gnunet-service-search
 stamp-h1
