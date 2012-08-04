@@ -35,9 +35,9 @@
 #include "gnunet_protocols_search.h"
 
 #include "gnunet-service-search-web.h"
-#include "url-processor/gnunet-search-url-processor.h"
-#include "util/gnunet-search-util.h"
-#include "client-communication/client-communication.h"
+#include "service/url-processor/gnunet-search-url-processor.h"
+#include "service/util/gnunet-search-util.h"
+#include "service/client-communication/client-communication.h"
 
 /**
  * Our configuration.
