@@ -45,11 +45,11 @@ static char *file_string;
 static char *keyword_string;
 
 static void receive_response(void *cls, const struct GNUNET_MessageHeader * msg) {
-	struct search_response *response = (struct search_response*)(msg + 1);
+	struct search_response *response = (struct search_response*) (msg + 1);
 
 	GNUNET_assert(htons(msg->size) >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response));
 
-	switch(response->type) {
+	switch (response->type) {
 		case GNUNET_SEARCH_RESPONSE_TYPE_DONE: {
 			printf("Server: Done\n");
 			break;
@@ -58,7 +58,7 @@ static void receive_response(void *cls, const struct GNUNET_MessageHeader * msg)
 			GNUNET_assert(response->size >= sizeof(struct search_response));
 			size_t result_length = response->size - sizeof(struct search_response);
 
-			char *result = (char*)malloc(result_length + 1);
+			char *result = (char*) malloc(result_length + 1);
 			memcpy(result, response + 1, result_length);
 			result[result_length] = 0;
 
@@ -159,24 +159,52 @@ static void transmit_urls(const char *file) {
 	char **urls = NULL;
 	size_t urls_length = urls_read(&urls, file);
 
-	void *serialized;
-	size_t serialized_size;
-	FILE *memstream = open_memstream((char**)&serialized, &serialized_size);
+	size_t maximal_payload_size = GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct search_command)
+			- sizeof(struct GNUNET_MessageHeader) /*- 65522 +l 60*/;
+//	printf("mps: %lu\n", maximal_payload_size);
 
-	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
+	char more_urls = 1;
+	char fragmented = 0;
+	size_t url_index = 0;
+	while (more_urls) {
+		void *serialized;
+		size_t serialized_size;
+		FILE *memstream = open_memstream((char**) &serialized, &serialized_size);
+
+		fseek(memstream, sizeof(struct search_command), SEEK_CUR);
 
 //	int64_t urls_length64 = urls_length;
 //	fwrite(&urls_length64, sizeof(urls_length64), 1, memstream);
 
-	for (int i = 0; i < urls_length; ++i)
-		fwrite(urls[i], 1, strlen(urls[i]) + 1, memstream);
+		uint8_t flags = fragmented ? GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT : 0;
 
-	fclose(memstream);
+		more_urls = 0;
+		size_t written_size = 0;
+		for (; url_index < urls_length; ++url_index) {
+			size_t url_size = strlen(urls[url_index]) + 1;
+//			printf("++ url_index: %lu, %lu, %lu\n", url_index, written_size, url_size);
+			if (written_size + url_size > maximal_payload_size) {
+				flags &= ~GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT;
+				fragmented = 1;
+				more_urls = 1;
+//				printf("url_index: %lu, %lu, %lu\n", url_index, written_size, url_size);
+				break;
+			}
+			fwrite(urls[url_index], 1, url_size, memstream);
+			written_size += url_size;
+		}
 
-	struct search_command *cmd = (struct search_command*) serialized;
+		fclose(memstream);
 
-	cmd->size = serialized_size;
-	cmd->action = GNUNET_SEARCH_ACTION_ADD;
+		flags |= fragmented ? GNUNET_MESSAGE_SEARCH_FLAG_FRAGMENTED : 0;
+
+//		printf("flags: 0x%x\n", flags);
+
+		struct search_command *cmd = (struct search_command*) serialized;
+
+		cmd->size = serialized_size;
+		cmd->action = GNUNET_SEARCH_ACTION_ADD;
+		cmd->flags = flags;
 
 //	printf("%s - %lu\n", (char*)(serialized + sizeof(struct search_command)), serialized_size);
 
@@ -184,8 +212,13 @@ static void transmit_urls(const char *file) {
 //		printf("%s\n", urls[i]);
 //	}
 
-	GNUNET_CLIENT_notify_transmit_ready(client_connection, sizeof(struct GNUNET_MessageHeader) + cmd->size,
-			GNUNET_TIME_relative_get_forever_(), 1, &transmit_ready, serialized);
+		GNUNET_CLIENT_notify_transmit_ready(client_connection, sizeof(struct GNUNET_MessageHeader) + cmd->size,
+				GNUNET_TIME_relative_get_forever_(), 1, &transmit_ready, serialized);
+
+		if(more_urls)
+			printf("WARNING --- SKIPPING OTHER FRAGMENTS ---");
+		break;
+	}
 
 	for (int i = 0; i < urls_length; ++i)
 		free(urls[i]);
@@ -201,7 +234,7 @@ static void transmit_urls(const char *file) {
 static void transmit_keyword(const char *keyword) {
 	void *serialized;
 	size_t serialized_size;
-	FILE *memstream = open_memstream((char**)&serialized, &serialized_size);
+	FILE *memstream = open_memstream((char**) &serialized, &serialized_size);
 
 	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
 	fwrite(keyword, 1, strlen(keyword) + 1, memstream);
