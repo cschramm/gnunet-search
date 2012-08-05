@@ -34,6 +34,7 @@
 #include "gnunet_search_service.h"
 #include "gnunet_protocols_search.h"
 #include "server-communication/server-communication.h"
+#include "util/util.h"
 
 #define GNUNET_SEARCH_ACTION_STRING_SEARCH "search"
 #define GNUNET_SEARCH_ACTION_STRING_ADD "add"
@@ -44,27 +45,69 @@ static char *action_string;
 static char *file_string;
 static char *keyword_string;
 
-static void receive_handler(struct gnunet_search_server_communication_header *header, void *buffer) {
+static void receive_handler(size_t size, void *buffer) {
+	struct search_response *response = (struct search_response*)buffer;
 	/*
 	 * Security?
 	 */
-	switch (header->type) {
+	switch(response->type) {
 		case GNUNET_SEARCH_RESPONSE_TYPE_DONE: {
 			printf("Server: Done\n");
 			break;
 		}
 		case GNUNET_SEARCH_RESPONSE_TYPE_RESULT: {
-			GNUNET_assert(header->size >= sizeof(struct search_response));
+			/*
+			 * Todo: Siehe nächste Zeile
+			 */
+			//GNUNET_assert(header->size >= sizeof(struct search_response));
 
-			char *result = (char*) malloc(header->size + 1);
-			memcpy(result, buffer, header->size);
-			result[header->size] = 0;
+			/*
+			 * Todo: broken, fix
+			 */
+			char *result = (char*) malloc(size + 1);
+			memcpy(result, buffer, size);
+			result[size] = 0;
 
 			printf("Server result: %s\n", result);
 
 			free(result);
 		}
 	}
+}
+
+void transmit_urls(const char *file) {
+//	printf("transmit_urls()\n");
+
+	char **urls = NULL;
+	size_t urls_length = urls_read(&urls, file);
+
+	void *serialized;
+	size_t serialized_size;
+	FILE *memstream = open_memstream((char**) &serialized, &serialized_size);
+
+	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
+
+	for(size_t url_index = 0; url_index < urls_length; ++url_index) {
+		size_t url_length = strlen(urls[url_index]);
+		fwrite(urls[url_index], 1, url_length, memstream);
+		fputc(0, memstream);
+	}
+
+	fclose(memstream);
+
+	printf("blah %zu\n", serialized_size);
+
+	struct search_command *cmd = (struct search_command*) serialized;
+
+	cmd->size = serialized_size;
+	cmd->action = GNUNET_SEARCH_ACTION_ADD;
+
+	for(int i = 0; i < urls_length; ++i)
+		free(urls[i]);
+
+	free(urls);
+
+	transmit(serialized_size, serialized);
 }
 
 /**
@@ -85,9 +128,9 @@ static void run(void *cls, char * const *args, const char *cfgfile, const struct
 	add_listener(&receive_handler);
 	gnunet_search_server_communication_receive();
 
-	if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
+	if(!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
 		transmit_keyword(keyword_string);
-	else if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_ADD))
+	else if(!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_ADD))
 		transmit_urls(file_string);
 
 }

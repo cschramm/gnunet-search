@@ -10,12 +10,13 @@
 
 #include <stdint.h>
 
-struct gnunet_search_server_communication_header {
-	uint8_t type;
-	size_t size;
-};
+//struct gnunet_search_server_communication_header {
+//	uint8_t type;
+//	size_t size;
+//};
 
-void add_listener(void (*handler)(struct gnunet_search_server_communication_header *, void*));
+void transmit(size_t size, void *data);
+void add_listener(void (*handler)(size_t, void*));
 extern void gnunet_search_server_communication_receive();
 extern void gnunet_search_server_communication_init(const struct GNUNET_CONFIGURATION_Handle *cfg);
 extern void gnunet_search_server_communication_free();

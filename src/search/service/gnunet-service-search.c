@@ -70,6 +70,9 @@ static size_t search_cmd_urls_get(char ***urls, struct search_command const *cmd
 	size_t read_length = sizeof(struct search_command);
 	size_t urls_number = 0;
 	while (read_length < cmd->size) {
+		/*
+		 * Todo: Security...
+		 */
 		size_t url_length = strlen(urls_source);
 		char *url = (char*) malloc(url_length + 1);
 		memcpy(url, urls_source, url_length + 1);
@@ -147,10 +150,12 @@ static void gnunet_service_search_client_message_handle(void *cls, struct GNUNET
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 	GNUNET_SERVER_client_keep(client);
 
-	struct search_command *cmd = (struct search_command*) (message + 1);
+	struct message_header *msg_header = (struct message_header*) (message + 1);
+
+	struct search_command *cmd = (struct search_command*) (msg_header + 1);
 
 	//printf("Message: size = %lu\n", htons(message->size));
-	printf("Command: action = %u, size = %zu, flags = 0x%x\n", cmd->action, cmd->size, cmd->flags);
+	printf("Command: action = %u, size = %zu, flags = 0x%x\n", cmd->action, cmd->size, msg_header->flags);
 
 	if (cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
 		char *keyword;

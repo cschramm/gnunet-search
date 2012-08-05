@@ -39,7 +39,7 @@ void gnunet_search_client_communication_send_result(void const *data, size_t siz
 	struct search_response *response = (struct search_response*) (message_buffer + sizeof(struct GNUNET_MessageHeader));
 	response->type = type;
 	response->size = sizeof(struct search_response) + size;
-	response->flags = 0;
+//	response->flags = 0;
 
 	memcpy(message_buffer + sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response), data, size);
 
