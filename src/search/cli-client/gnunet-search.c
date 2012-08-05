@@ -33,12 +33,12 @@
 #include <gnunet/gnunet_client_lib.h>
 #include "gnunet_search_service.h"
 #include "gnunet_protocols_search.h"
+#include "server-communication/server-communication.h"
 
 #define GNUNET_SEARCH_ACTION_STRING_SEARCH "search"
 #define GNUNET_SEARCH_ACTION_STRING_ADD "add"
 
 static int ret;
-static struct GNUNET_CLIENT_Connection *client_connection;
 
 static char *action_string;
 static char *file_string;
@@ -47,7 +47,7 @@ static char *keyword_string;
 static void receive_response(void *cls, const struct GNUNET_MessageHeader * msg) {
 	struct search_response *response = (struct search_response*) (msg + 1);
 
-	GNUNET_assert(htons(msg->size) >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response));
+	GNUNET_assert(ntohs(msg->size) >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response));
 
 	switch (response->type) {
 		case GNUNET_SEARCH_RESPONSE_TYPE_DONE: {
@@ -69,186 +69,6 @@ static void receive_response(void *cls, const struct GNUNET_MessageHeader * msg)
 	}
 }
 
-static size_t transmit_ready(void *cls, size_t size, void *buffer) {
-
-	size_t msg_size = sizeof(struct GNUNET_MessageHeader);
-
-	struct search_command *cmd = (struct search_command*) cls;
-	msg_size += cmd->size;
-
-	GNUNET_assert(size >= msg_size);
-
-	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) buffer;
-	header->type = GNUNET_MESSAGE_TYPE_SEARCH;
-	header->size = htons(msg_size);
-
-	memcpy(buffer + sizeof(struct GNUNET_MessageHeader), cls, cmd->size);
-
-	free(cls);
-
-	//printf("End of transmit_ready()...\n");
-
-	return msg_size;
-}
-
-static size_t urls_read(char ***urls, const char *file) {
-	FILE *fh = fopen(file, "r");
-	if (fh == NULL) {
-		printf("Error opening file...");
-		return 0;
-		/**
-		 * Todo: Handle error
-		 */
-	}
-
-	size_t urls_size = 32;
-	size_t urls_length = 0;
-	*urls = (char**) malloc(sizeof(char*) * urls_size);
-
-	size_t line_size = 64;
-	size_t line_length = 0;
-	char *line = (char*) malloc(line_size);
-
-	int eof;
-	do {
-		char next;
-		size_t read = fread(&next, 1, 1, fh);
-		eof = feof(fh) && !read;
-
-		if (line_length + 1 + eof > line_size) {
-			line_size <<= 1;
-			line = realloc(line, line_size);
-		}
-
-		if (!eof)
-			line[line_length++] = next;
-
-		if ((next == '\n' || eof) && line_length > 0) {
-			if (next == '\n')
-				line_length--;
-			line[line_length++] = 0;
-
-			//printf("%s\n", line);
-			if (urls_length + 1 > urls_size) {
-				urls_size <<= 1;
-				*urls = (char**) realloc(*urls, urls_size);
-			}
-			(*urls)[urls_length] = (char*) malloc(line_length);
-			memcpy(*(*urls + urls_length), line, line_length);
-			urls_length++;
-
-			line_length = 0;
-		}
-
-		//		char *line;
-//		fscanf(fh, "%as", &line);
-//		printf("Read: %s", line);
-//		free(line);
-	} while (!eof);
-
-	free(line);
-
-	fclose(fh);
-
-	return urls_length;
-}
-
-static void transmit_urls(const char *file) {
-//	printf("transmit_urls()\n");
-
-	char **urls = NULL;
-	size_t urls_length = urls_read(&urls, file);
-
-	size_t maximal_payload_size = GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct search_command)
-			- sizeof(struct GNUNET_MessageHeader) /*- 65522 +l 60*/;
-//	printf("mps: %lu\n", maximal_payload_size);
-
-	char more_urls = 1;
-	char fragmented = 0;
-	size_t url_index = 0;
-	while (more_urls) {
-		void *serialized;
-		size_t serialized_size;
-		FILE *memstream = open_memstream((char**) &serialized, &serialized_size);
-
-		fseek(memstream, sizeof(struct search_command), SEEK_CUR);
-
-//	int64_t urls_length64 = urls_length;
-//	fwrite(&urls_length64, sizeof(urls_length64), 1, memstream);
-
-		uint8_t flags = fragmented ? GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT : 0;
-
-		more_urls = 0;
-		size_t written_size = 0;
-		for (; url_index < urls_length; ++url_index) {
-			size_t url_size = strlen(urls[url_index]) + 1;
-//			printf("++ url_index: %lu, %lu, %lu\n", url_index, written_size, url_size);
-			if (written_size + url_size > maximal_payload_size) {
-				flags &= ~GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT;
-				fragmented = 1;
-				more_urls = 1;
-//				printf("url_index: %lu, %lu, %lu\n", url_index, written_size, url_size);
-				break;
-			}
-			fwrite(urls[url_index], 1, url_size, memstream);
-			written_size += url_size;
-		}
-
-		fclose(memstream);
-
-		flags |= fragmented ? GNUNET_MESSAGE_SEARCH_FLAG_FRAGMENTED : 0;
-
-//		printf("flags: 0x%x\n", flags);
-
-		struct search_command *cmd = (struct search_command*) serialized;
-
-		cmd->size = serialized_size;
-		cmd->action = GNUNET_SEARCH_ACTION_ADD;
-		cmd->flags = flags;
-
-//	printf("%s - %lu\n", (char*)(serialized + sizeof(struct search_command)), serialized_size);
-
-//	for (int i = 0; i < urls_length; ++i) {
-//		printf("%s\n", urls[i]);
-//	}
-
-		GNUNET_CLIENT_notify_transmit_ready(client_connection, sizeof(struct GNUNET_MessageHeader) + cmd->size,
-				GNUNET_TIME_relative_get_forever_(), 1, &transmit_ready, serialized);
-
-		if(more_urls)
-			printf("WARNING --- SKIPPING OTHER FRAGMENTS ---");
-		break;
-	}
-
-	for (int i = 0; i < urls_length; ++i)
-		free(urls[i]);
-
-	free(urls);
-
-	/*
-	 * Todo: Fragmentation
-	 */
-
-}
-
-static void transmit_keyword(const char *keyword) {
-	void *serialized;
-	size_t serialized_size;
-	FILE *memstream = open_memstream((char**) &serialized, &serialized_size);
-
-	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
-	fwrite(keyword, 1, strlen(keyword) + 1, memstream);
-
-	fclose(memstream);
-
-	struct search_command *cmd = (struct search_command*) serialized;
-	cmd->action = GNUNET_SEARCH_ACTION_SEARCH;
-	cmd->size = serialized_size;
-
-	GNUNET_CLIENT_notify_transmit_ready(client_connection, sizeof(struct GNUNET_MessageHeader) + serialized_size,
-			GNUNET_TIME_relative_get_forever_(), 1, &transmit_ready, serialized);
-}
-
 /**
  * Main function that will be run by the scheduler.
  *
@@ -264,6 +84,7 @@ static void run(void *cls, char * const *args, const char *cfgfile, const struct
 //	printf("file: %s\n", file_string);
 
 	client_connection = GNUNET_CLIENT_connect("search", cfg);
+	gnunet_search_server_communication_message_queue_init();
 
 	if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
 		transmit_keyword(keyword_string);

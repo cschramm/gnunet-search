@@ -150,7 +150,7 @@ static void gnunet_service_search_client_message_handle(void *cls, struct GNUNET
 	struct search_command *cmd = (struct search_command*) (message + 1);
 
 	//printf("Message: size = %lu\n", htons(message->size));
-	printf("Command: action = %d, size = %lu, flags = 0x%x\n", (int)cmd->action, (long)cmd->size, cmd->flags);
+	printf("Command: action = %u, size = %zu, flags = 0x%x\n", cmd->action, cmd->size, cmd->flags);
 
 	if (cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
 		char *keyword;
