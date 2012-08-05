@@ -180,6 +180,7 @@ CPPFLAGS="$backup_CPPFLAGS"
 clearsilver=1
 zlib=0
 microhttpd=1
+jansson=1
 for d in "/usr/include" "/usr/local/include" "{$prefix}/include"; do
 	if test -d "${d}/ClearSilver"; then
 		CS_INCLUDES="-I${d}/ClearSilver"
@@ -188,11 +189,13 @@ done
 CPPFLAGS="${CPPFLAGS} ${CS_INCLUDES}"
 AC_CHECK_HEADERS([ClearSilver.h],, [clearsilver=0])
 AC_CHECK_HEADERS([microhttpd.h],, [microhttpd=0])
+AC_CHECK_HEADERS([jansson.h],, [jansson=0])
 AC_HAVE_LIBRARY([neo_cs],, [clearsilver=0])
 AC_HAVE_LIBRARY([neo_utl],, [clearsilver=0])
 AC_HAVE_LIBRARY([neo_cgi],, [clearsilver=0])
 AC_HAVE_LIBRARY([z], [zlib=1])
 AC_HAVE_LIBRARY([microhttpd],, [microhttpd=0])
+AC_HAVE_LIBRARY([jansson],, [jansson=0])
 
 if test "x$clearsilver" == "x0"
 then
@@ -209,6 +212,11 @@ then
   AC_MSG_ERROR([ClearSilver requires zlib])
 fi
 
+if test "x$jansson" == "x0"
+then
+  AC_MSG_ERROR([gnunet-search requires jansson])
+fi
+
 AC_DEFINE_DIR([PACKAGE_DATA], [datarootdir], [The directory for installing read-only architecture-independent data])
 
 # Set PACKAGE_SOURCE_DIR in gnunet_gtk_config.h.
@@ -220,5 +228,4 @@ Makefile
 src/Makefile
 src/include/Makefile
 src/search/Makefile
-src/search/www/Makefile
 ])

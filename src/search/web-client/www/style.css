@@ -19,3 +19,11 @@ header {
 input {
 	border: 1px solid black;
 }
+
+#error {
+	margin: auto;
+	color: red;
+	width: 200px;
+	text-align: center;
+	font-weight: bold;
+}

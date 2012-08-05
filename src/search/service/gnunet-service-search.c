@@ -34,7 +34,6 @@
 #include <gnunet/gnunet_dht_service.h>
 #include "gnunet_protocols_search.h"
 
-#include "gnunet-service-search-web.h"
 #include "service/url-processor/gnunet-search-url-processor.h"
 #include "service/util/gnunet-search-util.h"
 #include "service/client-communication/client-communication.h"
@@ -186,7 +185,6 @@ static void gnunet_service_search_client_message_handle(void *cls, struct GNUNET
  * @param tc unused
  */
 static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
-	stop_webserver((struct MHD_Daemon*) cls);
 }
 
 /**
@@ -224,7 +222,7 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 	cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
 	GNUNET_SERVER_disconnect_notify(server, &handle_client_disconnect, NULL);
-	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, start_webserver(1, 8080));
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
 
 	gnunet_search_dht_handle = GNUNET_DHT_connect(cfg, 3);
 
