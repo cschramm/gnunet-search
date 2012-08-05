@@ -44,23 +44,21 @@ static char *action_string;
 static char *file_string;
 static char *keyword_string;
 
-static void receive_response(void *cls, const struct GNUNET_MessageHeader * msg) {
-	struct search_response *response = (struct search_response*) (msg + 1);
-
-	GNUNET_assert(ntohs(msg->size) >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response));
-
-	switch (response->type) {
+static void receive_handler(struct gnunet_search_server_communication_header *header, void *buffer) {
+	/*
+	 * Security?
+	 */
+	switch (header->type) {
 		case GNUNET_SEARCH_RESPONSE_TYPE_DONE: {
 			printf("Server: Done\n");
 			break;
 		}
 		case GNUNET_SEARCH_RESPONSE_TYPE_RESULT: {
-			GNUNET_assert(response->size >= sizeof(struct search_response));
-			size_t result_length = response->size - sizeof(struct search_response);
+			GNUNET_assert(header->size >= sizeof(struct search_response));
 
-			char *result = (char*) malloc(result_length + 1);
-			memcpy(result, response + 1, result_length);
-			result[result_length] = 0;
+			char *result = (char*) malloc(header->size + 1);
+			memcpy(result, buffer, header->size);
+			result[header->size] = 0;
 
 			printf("Server result: %s\n", result);
 
@@ -83,15 +81,15 @@ static void run(void *cls, char * const *args, const char *cfgfile, const struct
 //	printf("action: %s\n", action_string);
 //	printf("file: %s\n", file_string);
 
-	client_connection = GNUNET_CLIENT_connect("search", cfg);
-	gnunet_search_server_communication_message_queue_init();
+	gnunet_search_server_communication_init(cfg);
+	add_listener(&receive_handler);
+	gnunet_search_server_communication_receive();
 
 	if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
 		transmit_keyword(keyword_string);
 	else if (!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_ADD))
 		transmit_urls(file_string);
 
-	GNUNET_CLIENT_receive(client_connection, &receive_response, NULL, GNUNET_TIME_relative_get_forever_());
 }
 
 //static int cmdline_processor(
