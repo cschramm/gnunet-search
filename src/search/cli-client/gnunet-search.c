@@ -88,7 +88,7 @@ static void gnunet_search_transmit_urls(const char *file) {
 		free(urls[i]);
 	free(urls);
 
-	gnunet_search_server_communication_transmit(serialized, serialized_size);
+	gnunet_search_communication_transmit(serialized, serialized_size);
 
 	free(serialized);
 }
@@ -107,7 +107,7 @@ static void gnunet_search_transmit_keyword(const char *keyword) {
 	cmd->action = GNUNET_SEARCH_ACTION_SEARCH;
 	cmd->size = serialized_size;
 
-	gnunet_search_server_communication_transmit(serialized, serialized_size);
+	gnunet_search_communication_transmit(serialized, serialized_size);
 
 	free(serialized);
 }
