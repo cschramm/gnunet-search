@@ -27,13 +27,14 @@ static void gnunet_search_server_communication_receive_response(void *cls, const
 		GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL, GNUNET_TIME_relative_get_forever_());
 }
 
-static void gnunet_search_server_communication_request_notify_transmit_ready(size_t size, void *cls, size_t (*handler)(void*, size_t, void*)) {
-	GNUNET_CLIENT_notify_transmit_ready(client_connection, size,
-				GNUNET_TIME_relative_get_forever_(), 1, handler, cls);
+static void gnunet_search_server_communication_request_notify_transmit_ready(size_t size, void *cls,
+		size_t (*handler)(void*, size_t, void*)) {
+	GNUNET_CLIENT_notify_transmit_ready(client_connection, size, GNUNET_TIME_relative_get_forever_(), 1, handler, cls);
 }
 
 void gnunet_search_server_communication_receive() {
-	GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL, GNUNET_TIME_relative_get_forever_());
+	GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL,
+			GNUNET_TIME_relative_get_forever_());
 }
 
 void gnunet_search_server_communication_init(const struct GNUNET_CONFIGURATION_Handle *cfg) {

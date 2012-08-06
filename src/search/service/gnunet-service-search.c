@@ -37,6 +37,7 @@
 #include "service/url-processor/gnunet-search-url-processor.h"
 #include "service/util/gnunet-search-util.h"
 #include "service/client-communication/client-communication.h"
+#include "../communication/communication.h"
 
 /**
  * Our configuration.
@@ -114,10 +115,10 @@ static void search_dht_get_result_iterator_and_send_to_user(void *cls, struct GN
 
 	//search_send_result("hallo", 6, (struct GNUNET_SERVER_Client *) cls);
 
-	gnunet_search_client_communication_send_result(data, size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT, (struct GNUNET_SERVER_Client *) cls);
+	gnunet_search_client_communication_send_result(data, size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT);
 }
 
-static void search_dht_get_and_send_to_user(char const *keyword, struct GNUNET_SERVER_Client *client) {
+static void search_dht_get_and_send_to_user(char const *keyword) {
 	char *key_value;
 	search_key_value_generate_simple(&key_value, "keyword", keyword);
 
@@ -131,11 +132,11 @@ static void search_dht_get_and_send_to_user(char const *keyword, struct GNUNET_S
 	free(key_value);
 
 	dht_get_handle = GNUNET_DHT_get_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, &hash, 3,
-			GNUNET_DHT_RO_NONE, NULL, 0, &search_dht_get_result_iterator_and_send_to_user, client);
+			GNUNET_DHT_RO_NONE, NULL, 0, &search_dht_get_result_iterator_and_send_to_user, NULL);
 }
 
-static void search_process(char const *keyword, struct GNUNET_SERVER_Client *client) {
-	search_dht_get_and_send_to_user(keyword, client);
+static void search_process(char const *keyword) {
+	search_dht_get_and_send_to_user(keyword);
 }
 
 /**
@@ -147,17 +148,19 @@ static void search_process(char const *keyword, struct GNUNET_SERVER_Client *cli
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static void gnunet_service_search_client_message_handle(void *cls, struct GNUNET_SERVER_Client *client,
-		const struct GNUNET_MessageHeader *message) {
-	GNUNET_SERVER_receive_done(client, GNUNET_OK);
-	GNUNET_SERVER_client_keep(client);
+static void gnunet_service_search_client_message_handle(size_t size, void *buffer) {
+	GNUNET_assert(size >= sizeof(struct search_command));
 
-	struct message_header *msg_header = (struct message_header*) (message + 1);
+	struct search_command *cmd = (struct search_command*)buffer;
 
-	struct search_command *cmd = (struct search_command*) (msg_header + 1);
+	GNUNET_assert(size == cmd->size);
+
+//	struct message_header *msg_header = (struct message_header*) (message + 1);
+//
+//	struct search_command *cmd = (struct search_command*) (msg_header + 1);
 
 	//printf("Message: size = %lu\n", htons(message->size));
-	printf("Command: action = %u, size = %zu, flags = 0x%x\n", cmd->action, cmd->size, msg_header->flags);
+	printf("Command: action = %u, size = %zu\n", cmd->action, cmd->size);
 
 	if (cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
 		char *keyword;
@@ -165,7 +168,7 @@ static void gnunet_service_search_client_message_handle(void *cls, struct GNUNET
 
 		printf("Searching keyword: %s...\n", keyword);
 
-		search_process(keyword, client);
+		search_process(keyword);
 
 		free(keyword);
 	}
@@ -175,7 +178,7 @@ static void gnunet_service_search_client_message_handle(void *cls, struct GNUNET
 
 		gnunet_search_util_dht_url_list_put(urls, urls_length, 2);
 
-		gnunet_search_client_communication_send_result(NULL, 0, GNUNET_SEARCH_RESPONSE_TYPE_DONE, client);
+		gnunet_search_client_communication_send_result(NULL, 0, GNUNET_SEARCH_RESPONSE_TYPE_DONE);
 
 		for (size_t i = 0; i < urls_length; ++i)
 			free(urls[i]);
@@ -225,8 +228,9 @@ static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption option
  */
 static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c) {
 	gnunet_search_client_communication_init();
+	gnunet_search_communication_listener_add(&gnunet_service_search_client_message_handle);
 
-	static const struct GNUNET_SERVER_MessageHandler handlers[] = { { &gnunet_service_search_client_message_handle,
+	static const struct GNUNET_SERVER_MessageHandler handlers[] = { { &gnunet_search_client_communication_message_handle,
 			NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL, NULL, 0, 0 } };
 	cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
