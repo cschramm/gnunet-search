@@ -43,7 +43,7 @@ gnunet_search_web_LDFLAGS = \
 gnunet_search_SOURCES = \
   cli-client/gnunet-search.c \
   cli-client/util/util.c \
-  cli-client/server-communication/server-communication.c
+  client/server-communication/server-communication.c
 gnunet_search_LDADD = \
   -lgnunetutil \
   -lcollections \

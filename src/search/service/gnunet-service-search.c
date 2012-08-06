@@ -46,7 +46,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_DHT_GetHandle *dht_get_handle;
 
 static void search_key_value_generate_simple(char **key_value, const char *action, const char *data) {
-
 	size_t key_value_length;
 	FILE *key_value_stream = open_memstream(key_value, &key_value_length);
 

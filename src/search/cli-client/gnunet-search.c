@@ -33,7 +33,7 @@
 #include <gnunet/gnunet_client_lib.h>
 #include "gnunet_search_service.h"
 #include "gnunet_protocols_search.h"
-#include "server-communication/server-communication.h"
+#include "../client/server-communication/server-communication.h"
 #include "util/util.h"
 
 #define GNUNET_SEARCH_ACTION_STRING_SEARCH "search"
@@ -75,7 +75,7 @@ static void receive_handler(size_t size, void *buffer) {
 	}
 }
 
-void transmit_urls(const char *file) {
+static void transmit_urls(const char *file) {
 //	printf("transmit_urls()\n");
 
 	char **urls = NULL;
@@ -95,8 +95,6 @@ void transmit_urls(const char *file) {
 
 	fclose(memstream);
 
-	printf("blah %zu\n", serialized_size);
-
 	struct search_command *cmd = (struct search_command*) serialized;
 
 	cmd->size = serialized_size;
@@ -107,7 +105,24 @@ void transmit_urls(const char *file) {
 
 	free(urls);
 
-	transmit(serialized_size, serialized);
+	gnunet_search_server_communication_transmit(serialized, serialized_size);
+}
+
+static void transmit_keyword(const char *keyword) {
+	void *serialized;
+	size_t serialized_size;
+	FILE *memstream = open_memstream((char**) &serialized, &serialized_size);
+
+	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
+	fwrite(keyword, 1, strlen(keyword) + 1, memstream);
+
+	fclose(memstream);
+
+	struct search_command *cmd = (struct search_command*) serialized;
+	cmd->action = GNUNET_SEARCH_ACTION_SEARCH;
+	cmd->size = serialized_size;
+
+	gnunet_search_server_communication_transmit(serialized, serialized_size);
 }
 
 /**
@@ -125,7 +140,7 @@ static void run(void *cls, char * const *args, const char *cfgfile, const struct
 //	printf("file: %s\n", file_string);
 
 	gnunet_search_server_communication_init(cfg);
-	add_listener(&receive_handler);
+	gnunet_search_server_communication_listener_add(&receive_handler);
 	gnunet_search_server_communication_receive();
 
 	if(!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
