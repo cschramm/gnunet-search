@@ -26,12 +26,6 @@ void gnunet_search_client_communication_message_handle(void *cls, struct GNUNET_
 	gnunet_search_communication_receive(gnunet_message);
 }
 
-//static void gnunet_search_client_communication_receive_response(void *cls, const struct GNUNET_MessageHeader *gnunet_message) {
-//	char more_messages = gnunet_search_communication_receive(gnunet_message);
-//	if(more_messages)
-//		GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL, GNUNET_TIME_relative_get_forever_());
-//}
-
 static void gnunet_search_client_communication_request_notify_transmit_ready(size_t size, void *cls,
 		size_t (*handler)(void*, size_t, void*)) {
 	GNUNET_SERVER_notify_transmit_ready(_client, size, GNUNET_TIME_relative_get_forever_(), handler, cls);
@@ -40,11 +34,6 @@ static void gnunet_search_client_communication_request_notify_transmit_ready(siz
 void gnunet_search_client_communication_init() {
 	gnunet_search_communication_init(&gnunet_search_client_communication_request_notify_transmit_ready);
 }
-
-//void gnunet_search_server_communication_receive() {
-//	GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL,
-//			GNUNET_TIME_relative_get_forever_());
-//}
 
 void gnunet_search_client_communication_send_result(void const *data, size_t size, char type) {
 
@@ -56,10 +45,6 @@ void gnunet_search_client_communication_send_result(void const *data, size_t siz
 	response->size = message_size;
 
 	memcpy(response + 1, data, size);
-
-//	printf("Client: %lu\n", client);
-//
-//	printf("Requesting size: %lu\n", message_size);
 
 	gnunet_search_communication_transmit(message_buffer, message_size);
 

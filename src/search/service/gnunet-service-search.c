@@ -155,11 +155,6 @@ static void gnunet_service_search_client_message_handle(size_t size, void *buffe
 
 	GNUNET_assert(size == cmd->size);
 
-//	struct message_header *msg_header = (struct message_header*) (message + 1);
-//
-//	struct search_command *cmd = (struct search_command*) (msg_header + 1);
-
-	//printf("Message: size = %lu\n", htons(message->size));
 	printf("Command: action = %u, size = %zu\n", cmd->action, cmd->size);
 
 	if (cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
@@ -241,37 +236,6 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 
 	GNUNET_DHT_monitor_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, NULL, NULL, NULL,
 			&search_dht_monitor_put, NULL);
-
-//	char **urls;
-//	size_t urls_length;// = search_cmd_urls_get(&urls, cmd);
-//
-//	char *hugo = "http://www.heise.de/";
-////	char *hugoM = malloc(strlen(hugo) + 1);
-////	memcpy(hugoM, hugo, strlen(hugo) + 1);
-////
-//	char *inge = "http://www.google.de/";
-////	char *ingeM = malloc(strlen(inge) + 1);
-////	memcpy(ingeM, inge, strlen(inge) + 1);
-////
-//	char *egon = "http://www.golem.de/";
-////	char *egonM = malloc(strlen(egon) + 1);
-////	memcpy(egonM, egon, strlen(egon) + 1);
-//
-//	urls = (char**)malloc(sizeof(char*)*3);
-//	urls[0] = hugo;
-//	urls[1] = inge;
-//	urls[2] = egon;
-//	urls_length = 3;
-////
-//	search_dht_url_list_put(urls, urls_length);
-
-//	search_dht_string_string_put(hugoM, "lala");
-//	free(hugoM);
-//	search_dht_string_string_put(ingeM, "lala1");
-//	free(ingeM);
-//	search_dht_string_string_put(egonM, "lala2");
-//	free(egonM);
-
 }
 
 /**
