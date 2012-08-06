@@ -450,9 +450,9 @@ int main(int argc, char * const *argv) {
 		{
 			'p',
 			"port",
-			"port",
+			"PORT",
 			gettext_noop("TCP port to listen on. Defaults to 8080"),
-			0,
+			1,
 			&GNUNET_GETOPT_set_uint,
 			&port
 		},
