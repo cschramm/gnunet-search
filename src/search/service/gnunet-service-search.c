@@ -224,6 +224,8 @@ static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption option
  * @param c configuration to use
  */
 static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c) {
+	gnunet_search_client_communication_init();
+
 	static const struct GNUNET_SERVER_MessageHandler handlers[] = { { &gnunet_service_search_client_message_handle,
 			NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL, NULL, 0, 0 } };
 	cfg = c;

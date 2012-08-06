@@ -166,7 +166,9 @@ void gnunet_search_communication_transmit(void *data, size_t size) {
 			size = data_left;
 		}
 
-		void *buffer = malloc(sizeof(struct message_header) + size);
+		size_t msg_with_header_size = sizeof(struct message_header) + size;
+
+		void *buffer = malloc(msg_with_header_size);
 		memcpy(buffer + sizeof(struct message_header), data + offset, size);
 
 		struct message_header *msg_header = (struct message_header*) buffer;
@@ -179,7 +181,7 @@ void gnunet_search_communication_transmit(void *data, size_t size) {
 				(struct gnunet_search_server_communication_queued_message*) malloc(
 						sizeof(struct gnunet_search_server_communication_queued_message));
 		msg->buffer = buffer;
-		msg->size = size;
+		msg->size = msg_with_header_size;
 
 		queue_enqueue(gnunet_search_communication_message_queue, msg);
 

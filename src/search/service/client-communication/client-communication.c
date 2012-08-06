@@ -14,35 +14,29 @@
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_dht_service.h>
 #include "gnunet_protocols_search.h"
+#include "../../communication/communication.h"
 
-static size_t gnunet_search_client_communication_send_result_transmit_ready(void *cls, size_t size, void *buffer) {
-	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) cls;
-	size_t message_size = ntohs(header->size);
+static struct GNUNET_SERVER_Client *_client;
 
-//	printf("Message size: %lu, available: %lu\n", message_size, size);
-	GNUNET_assert(message_size <= size);
+static void gnunet_search_client_communication_request_notify_transmit_ready(size_t size, void *cls,
+		size_t (*handler)(void*, size_t, void*)) {
+	GNUNET_SERVER_notify_transmit_ready(_client, size, GNUNET_TIME_relative_get_forever_(), handler, cls);
+}
 
-	memcpy(buffer, cls, message_size);
-
-	return message_size;
+void gnunet_search_client_communication_init() {
+	gnunet_search_communication_init(&gnunet_search_client_communication_request_notify_transmit_ready);
 }
 
 void gnunet_search_client_communication_send_result(void const *data, size_t size, char type,
 		struct GNUNET_SERVER_Client *client) {
-	size_t message_size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct message_header) + sizeof(struct search_response) + size;
+	_client = client;
+
+	size_t message_size = sizeof(struct search_response) + size;
 	void *message_buffer = malloc(message_size);
 
-	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) message_buffer;
-	header->size = htons(message_size);
-	header->type = htons(GNUNET_MESSAGE_TYPE_SEARCH);
-
-	struct message_header *msg_header = (struct messsage_header*)(header + 1);
-	msg_header->flags = 0;
-
-	struct search_response *response = (struct search_response*) (msg_header + 1);
+	struct search_response *response = (struct search_response*) message_buffer;
 	response->type = type;
-	response->size = sizeof(struct search_response) + size;
-//	response->flags = 0;
+	response->size = message_size;
 
 	memcpy(response + 1, data, size);
 
@@ -50,6 +44,7 @@ void gnunet_search_client_communication_send_result(void const *data, size_t siz
 //
 //	printf("Requesting size: %lu\n", message_size);
 
-	GNUNET_SERVER_notify_transmit_ready(client, message_size, GNUNET_TIME_relative_get_forever_(),
-			&gnunet_search_client_communication_send_result_transmit_ready, message_buffer);
+	gnunet_search_communication_transmit(message_buffer, message_size);
+
+	free(message_buffer);
 }
