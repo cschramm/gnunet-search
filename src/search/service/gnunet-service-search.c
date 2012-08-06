@@ -55,6 +55,9 @@ static void search_key_value_generate_simple(char **key_value, const char *actio
 	fclose(key_value_stream);
 }
 
+/*
+ * Security?
+ */
 static void search_cmd_keyword_get(char **keyword, struct search_command const *cmd) {
 	*keyword = (char*) malloc(strlen((char*) (cmd + 1)) + 1);
 	strcpy(*keyword, (char*) (cmd + 1));

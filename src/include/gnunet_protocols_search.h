@@ -35,7 +35,7 @@ extern "C"
 #endif
 #endif
 
-
+#include <stdint.h>
 
 /**
  * SEARCH messages
