@@ -29,19 +29,22 @@ static size_t gnunet_search_client_communication_send_result_transmit_ready(void
 
 void gnunet_search_client_communication_send_result(void const *data, size_t size, char type,
 		struct GNUNET_SERVER_Client *client) {
-	size_t message_size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response) + size;
+	size_t message_size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct message_header) + sizeof(struct search_response) + size;
 	void *message_buffer = malloc(message_size);
 
 	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) message_buffer;
 	header->size = htons(message_size);
 	header->type = htons(GNUNET_MESSAGE_TYPE_SEARCH);
 
-	struct search_response *response = (struct search_response*) (message_buffer + sizeof(struct GNUNET_MessageHeader));
+	struct message_header *msg_header = (struct messsage_header*)(header + 1);
+	msg_header->flags = 0;
+
+	struct search_response *response = (struct search_response*) (msg_header + 1);
 	response->type = type;
 	response->size = sizeof(struct search_response) + size;
 //	response->flags = 0;
 
-	memcpy(message_buffer + sizeof(struct GNUNET_MessageHeader) + sizeof(struct search_response), data, size);
+	memcpy(response + 1, data, size);
 
 //	printf("Client: %lu\n", client);
 //
