@@ -24,10 +24,11 @@ gnunet_service_search_SOURCES = \
   service/gnunet-service-search.c \
   service/url-processor/gnunet-search-url-processor.c \
   service/util/gnunet-search-util.c \
-  service/client-communication/client-communication.c
+  service/client-communication/client-communication.c \
+  communication/communication.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\
-  -lcrawl -lcurl \
+  -lcrawl -lcurl -lcollections \
   $(INTLLIBS) 
 gnunet_service_search_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) -export-dynamic 
@@ -43,7 +44,8 @@ gnunet_search_web_LDFLAGS = \
 gnunet_search_SOURCES = \
   cli-client/gnunet-search.c \
   cli-client/util/util.c \
-  client/server-communication/server-communication.c
+  client/server-communication/server-communication.c \
+  communication/communication.c
 gnunet_search_LDADD = \
   -lgnunetutil \
   -lcollections \

@@ -11,7 +11,6 @@
 #include <stdint.h>
 
 void gnunet_search_server_communication_transmit(void *data, size_t size);
-void gnunet_search_server_communication_listener_add(void (*handler)(size_t, void*));
 extern void gnunet_search_server_communication_receive();
 extern void gnunet_search_server_communication_init(const struct GNUNET_CONFIGURATION_Handle *cfg);
 extern void gnunet_search_server_communication_free();

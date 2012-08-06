@@ -15,87 +15,23 @@
 #include <gnunet/gnunet_dht_service.h>
 #include "gnunet_protocols_search.h"
 #include "server-communication.h"
+#include "../../communication/communication.h"
 
 #include <collections/queue/queue.h>
-#include <collections/arraylist/arraylist.h>
 
 static struct GNUNET_CLIENT_Connection *client_connection;
 
 static queue_t *gnunet_search_server_communication_message_queue;
-static array_list_t *gnunet_search_server_communication_listeners;
 
 static struct gnunet_search_server_communication_queued_message {
 	void *buffer;
 	size_t size;
 };
 
-static void gnunet_search_server_communication_listeners_notify(size_t size, void *buffer) {
-	for(long int i = 0; i < array_list_get_length(gnunet_search_server_communication_listeners); ++i) {
-		void (*listener)(size_t, void*);
-		array_list_get(gnunet_search_server_communication_listeners, (const void**) &listener, i);
-		listener(size, buffer);
-	}
-}
-
-static void gnunet_search_server_communication_receive_response(void *cls, const struct GNUNET_MessageHeader * gnunet_message) {
-	struct message_header *msg_header = (struct message_header*) (gnunet_message + 1);
-
-	GNUNET_assert(ntohs(gnunet_message->size) >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct message_header));
-
-	size_t gnunet_message_size = ntohs(gnunet_message->size);
-	size_t payload_size = gnunet_message_size - sizeof(struct GNUNET_MessageHeader) - sizeof(struct message_header);
-
-	static queue_t *fragments = NULL;
-	/*
-	 * Todo Security - how many fragments?
-	 */
-
-	if(msg_header->flags & GNUNET_MESSAGE_SEARCH_FLAG_FRAGMENTED) {
-		if(!fragments)
-			fragments = array_list_construct();
-		if(msg_header->flags & GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT) {
-//			struct gnunet_search_server_communication_header *header =
-//					(struct gnunet_search_server_communication_header*) malloc(
-//							sizeof(struct gnunet_search_server_communication_header));
-//			header->type = response->type;
-			size_t total_size;
-			char *buffer;
-			FILE *memstream = open_memstream(&buffer, &total_size);
-			while(queue_get_length(fragments)) {
-				struct GNUNET_MessageHeader *fragment = (struct GNUNET_MessageHeader*) queue_dequeue(fragments);
-				struct message_header *fragment_msg_header = (struct message_header *) (fragment + 1);
-
-				size_t fragment_message_size = ntohs(fragment->size);
-				size_t fragment_payload_size = fragment_message_size - sizeof(struct GNUNET_MessageHeader)
-						- sizeof(struct message_header);
-				/*
-				 * Todo: Security
-				 */
-				fwrite(fragment_msg_header + 1, 1, fragment_payload_size, memstream);
-				free(fragment);
-			}
-			fwrite(msg_header + 1, 1, payload_size, memstream);
-			fclose(memstream);
-			gnunet_search_server_communication_listeners_notify(total_size, buffer);
-//			free(header);
-			free(buffer);
-		} else {
-			/*
-			 * Todo: Security
-			 */
-			void *buffer = malloc(gnunet_message_size);
-			memcpy(buffer, gnunet_message, gnunet_message_size);
-			queue_enqueue(fragments, buffer);
-			GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL, GNUNET_TIME_relative_get_forever_());
-		}
-	} else {
-//		struct gnunet_search_server_communication_header *header =
-//				(struct gnunet_search_server_communication_header*) malloc(
-//						sizeof(struct gnunet_search_server_communication_header));
-//		header->size = response->size;
-		gnunet_search_server_communication_listeners_notify(payload_size, msg_header + 1);
-//		free(header);
-	}
+static void gnunet_search_server_communication_receive_response(void *cls, const struct GNUNET_MessageHeader *gnunet_message) {
+	char more_messages = gnunet_search_communication_receive(gnunet_message);
+	if(more_messages)
+		GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL, GNUNET_TIME_relative_get_forever_());
 }
 
 static void gnunet_search_server_communication_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -138,18 +74,14 @@ static void gnunet_search_server_communication_transmit_next(void *cls, const st
 			GNUNET_TIME_relative_get_forever_(), 1, &gnunet_search_server_communication_transmit_ready, msg);
 }
 
-void gnunet_search_server_communication_listener_add(void (*listener)(size_t, void*)) {
-	array_list_insert(gnunet_search_server_communication_listeners, listener);
-}
-
 void gnunet_search_server_communication_receive() {
 	GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL, GNUNET_TIME_relative_get_forever_());
 }
 
 void gnunet_search_server_communication_init(const struct GNUNET_CONFIGURATION_Handle *cfg) {
 	gnunet_search_server_communication_message_queue = queue_construct();
-	gnunet_search_server_communication_listeners = array_list_construct();
 	client_connection = GNUNET_CLIENT_connect("search", cfg);
+	gnunet_search_communication_init();
 }
 
 void gnunet_search_server_communication_free() {

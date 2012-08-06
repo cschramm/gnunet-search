@@ -19,7 +19,7 @@
  */
 
 /**
- * @file ...
+ * @file cli-client/gnunet-search.c
  * @brief ...
  * @author Julian Kranz
  */
@@ -34,6 +34,7 @@
 #include "gnunet_search_service.h"
 #include "gnunet_protocols_search.h"
 #include "../client/server-communication/server-communication.h"
+#include "../communication/communication.h"
 #include "util/util.h"
 
 #define GNUNET_SEARCH_ACTION_STRING_SEARCH "search"
@@ -45,7 +46,7 @@ static char *action_string;
 static char *file_string;
 static char *keyword_string;
 
-static void receive_handler(size_t size, void *buffer) {
+static void gnunet_search_receive_handler(size_t size, void *buffer) {
 	GNUNET_assert(size >= sizeof(struct search_response));
 
 	struct search_response *response = (struct search_response*)buffer;
@@ -88,6 +89,8 @@ static void gnunet_search_transmit_urls(const char *file) {
 	free(urls);
 
 	gnunet_search_server_communication_transmit(serialized, serialized_size);
+
+	free(serialized);
 }
 
 static void gnunet_search_transmit_keyword(const char *keyword) {
@@ -105,6 +108,8 @@ static void gnunet_search_transmit_keyword(const char *keyword) {
 	cmd->size = serialized_size;
 
 	gnunet_search_server_communication_transmit(serialized, serialized_size);
+
+	free(serialized);
 }
 
 /**
@@ -122,7 +127,7 @@ static void gnunet_search_run(void *cls, char * const *args, const char *cfgfile
 //	printf("file: %s\n", file_string);
 
 	gnunet_search_server_communication_init(cfg);
-	gnunet_search_server_communication_listener_add(&receive_handler);
+	gnunet_search_communication_listener_add(&gnunet_search_receive_handler);
 	gnunet_search_server_communication_receive();
 
 	if(!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
