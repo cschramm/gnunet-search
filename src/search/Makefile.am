@@ -25,7 +25,8 @@ gnunet_service_search_SOURCES = \
   service/url-processor/gnunet-search-url-processor.c \
   service/util/gnunet-search-util.c \
   service/client-communication/client-communication.c \
-  communication/communication.c
+  communication/communication.c \
+  service/flooding/flooding.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\
   -lcrawl -lcurl -lcollections \

@@ -32,12 +32,14 @@
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_dht_service.h>
+#include <gnunet/gnunet_core_service.h>
 #include "gnunet_protocols_search.h"
 
 #include "service/url-processor/gnunet-search-url-processor.h"
 #include "service/util/gnunet-search-util.h"
 #include "service/client-communication/client-communication.h"
 #include "../communication/communication.h"
+#include "flooding/flooding.h"
 
 /**
  * Our configuration.
@@ -72,7 +74,7 @@ static size_t search_cmd_urls_get(char ***urls, struct search_command const *cmd
 
 	size_t read_length = sizeof(struct search_command);
 	size_t urls_number = 0;
-	while (read_length < cmd->size) {
+	while(read_length < cmd->size) {
 		/*
 		 * Todo: Security...
 		 */
@@ -151,13 +153,13 @@ static void search_process(char const *keyword) {
 static void gnunet_service_search_client_message_handle(size_t size, void *buffer) {
 	GNUNET_assert(size >= sizeof(struct search_command));
 
-	struct search_command *cmd = (struct search_command*)buffer;
+	struct search_command *cmd = (struct search_command*) buffer;
 
 	GNUNET_assert(size == cmd->size);
 
 	printf("Command: action = %u, size = %zu\n", cmd->action, cmd->size);
 
-	if (cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
+	if(cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
 		char *keyword;
 		search_cmd_keyword_get(&keyword, cmd);
 
@@ -167,7 +169,7 @@ static void gnunet_service_search_client_message_handle(size_t size, void *buffe
 
 		free(keyword);
 	}
-	if (cmd->action == GNUNET_SEARCH_ACTION_ADD) {
+	if(cmd->action == GNUNET_SEARCH_ACTION_ADD) {
 		char **urls;
 		size_t urls_length = search_cmd_urls_get(&urls, cmd);
 
@@ -175,7 +177,7 @@ static void gnunet_service_search_client_message_handle(size_t size, void *buffe
 
 		gnunet_search_client_communication_send_result(NULL, 0, GNUNET_SEARCH_RESPONSE_TYPE_DONE);
 
-		for (size_t i = 0; i < urls_length; ++i)
+		for(size_t i = 0; i < urls_length; ++i)
 			free(urls[i]);
 		free(urls);
 	}
@@ -207,9 +209,9 @@ static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption option
 		const void *data, size_t size) {
 	char const *prefix = "search:url:";
 	size_t prefix_length = strlen(prefix);
-	if (size < prefix_length + 1)
+	if(size < prefix_length + 1)
 		return;
-	if (!strncmp(prefix, data, prefix_length)) {
+	if(!strncmp(prefix, data, prefix_length)) {
 		gnunet_search_url_processor_incoming_url_process(prefix_length, data, size);
 	}
 }
@@ -225,8 +227,9 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 	gnunet_search_client_communication_init();
 	gnunet_search_communication_listener_add(&gnunet_service_search_client_message_handle);
 
-	static const struct GNUNET_SERVER_MessageHandler handlers[] = { { &gnunet_search_client_communication_message_handle,
-			NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL, NULL, 0, 0 } };
+	static const struct GNUNET_SERVER_MessageHandler handlers[] = { {
+			&gnunet_search_client_communication_message_handle, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL, NULL, 0,
+			0 } };
 	cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
 	GNUNET_SERVER_disconnect_notify(server, &handle_client_disconnect, NULL);
@@ -236,6 +239,18 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 
 	GNUNET_DHT_monitor_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, NULL, NULL, NULL,
 			&search_dht_monitor_put, NULL);
+
+	static struct GNUNET_CORE_MessageHandler core_handlers
+	[] = {
+//		{	&callbackfunctionfortypeone, 1337 ,0},
+//		/∗morehandlers∗/
+		{	NULL,0,0}
+	};
+
+	GNUNET_CORE_connect(cfg, 42, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, core_handlers);
+
+	gnunet_search_flooding_init(cfg);
+	gnunet_search_flooding_data_flood(NULL, NULL, 0);
 }
 
 /**
