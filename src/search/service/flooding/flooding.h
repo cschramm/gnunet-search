@@ -26,7 +26,7 @@ struct gnunet_search_flooding_message {
 
 extern void gnunet_search_flooding_init();
 extern void gnunet_search_flooding_free();
-extern void gnunet_search_flooding_data_flood(struct GNUNET_PeerIdentity *source, void *data, size_t size);
 extern void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity *sender, const struct GNUNET_MessageHeader *message);
+extern void gnunet_search_flooding_peer_request_message_flood(const struct GNUNET_MessageHeader *message);
 
 #endif /* FLOODING_H_ */
