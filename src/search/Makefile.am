@@ -27,6 +27,7 @@ gnunet_service_search_SOURCES = \
   service/client-communication/client-communication.c \
   communication/communication.c \
   service/flooding/flooding.c \
+  service/storage/storage.c \
   service/globals/globals.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\
