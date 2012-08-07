@@ -48,6 +48,7 @@ struct message_header {
 } __attribute__((packed));
 
 #define GNUNET_MESSAGE_TYPE_SEARCH 0x4242
+#define GNUNET_MESSAGE_TYPE_SEARCH_FLOODING 0x2424
 
 #define GNUNET_SEARCH_ACTION_SEARCH 0x00
 #define GNUNET_SEARCH_ACTION_ADD 0x01

@@ -9,17 +9,24 @@
 #define FLOODING_H_
 
 #define GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE 25
+#define GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST 0
+#define GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE 0
 
 #include <stdint.h>
+
+#include <gnunet/platform.h>
+#include <gnunet/gnunet_util_lib.h>
+#include <gnunet/gnunet_core_service.h>
 
 struct gnunet_search_flooding_message {
 	uint64_t id;
 	uint8_t ttl;
-	uint64_t size;
+	uint8_t type;
 };
 
 extern void gnunet_search_flooding_init();
 extern void gnunet_search_flooding_free();
 extern void gnunet_search_flooding_data_flood(struct GNUNET_PeerIdentity *source, void *data, size_t size);
+extern void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity *sender, const struct GNUNET_MessageHeader *message);
 
 #endif /* FLOODING_H_ */

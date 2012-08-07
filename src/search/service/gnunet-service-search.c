@@ -40,11 +40,7 @@
 #include "service/client-communication/client-communication.h"
 #include "../communication/communication.h"
 #include "flooding/flooding.h"
-
-/**
- * Our configuration.
- */
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
+#include "globals/globals.h"
 
 static struct GNUNET_DHT_GetHandle *dht_get_handle;
 
@@ -216,6 +212,13 @@ static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption option
 	}
 }
 
+int core_inbound_notify(void *cls, const struct GNUNET_PeerIdentity *other, const struct GNUNET_MessageHeader *message,
+		const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count) {
+	gnunet_search_flooding_peer_message_process(other, message);
+
+	return GNUNET_OK;
+}
+
 /**
  * Process statistics requests.
  *
@@ -230,26 +233,25 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 	static const struct GNUNET_SERVER_MessageHandler handlers[] = { {
 			&gnunet_search_client_communication_message_handle, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL, NULL, 0,
 			0 } };
-	cfg = c;
+	gnunet_search_globals_cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
 	GNUNET_SERVER_disconnect_notify(server, &handle_client_disconnect, NULL);
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
 
-	gnunet_search_dht_handle = GNUNET_DHT_connect(cfg, 3);
+	gnunet_search_dht_handle = GNUNET_DHT_connect(gnunet_search_globals_cfg, 3);
 
 	GNUNET_DHT_monitor_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, NULL, NULL, NULL,
 			&search_dht_monitor_put, NULL);
 
-	static struct GNUNET_CORE_MessageHandler core_handlers
-	[] = {
-//		{	&callbackfunctionfortypeone, 1337 ,0},
+	static struct GNUNET_CORE_MessageHandler core_handlers[] = { { &core_inbound_notify,
+			GNUNET_MESSAGE_TYPE_SEARCH_FLOODING, 0 },
 //		/∗morehandlers∗/
-		{	NULL,0,0}
-	};
+			{ NULL, 0, 0 } };
 
-	GNUNET_CORE_connect(cfg, 42, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, core_handlers);
+	gnunet_search_globals_core_handle = GNUNET_CORE_connect(gnunet_search_globals_cfg, 42, NULL, NULL, NULL, NULL,
+			NULL/*&core_inbound_notify*/, 0, NULL, 0, core_handlers);
 
-	gnunet_search_flooding_init(cfg);
+	gnunet_search_flooding_init();
 	gnunet_search_flooding_data_flood(NULL, NULL, 0);
 }
 
