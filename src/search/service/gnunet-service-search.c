@@ -219,6 +219,11 @@ int core_inbound_notify(void *cls, const struct GNUNET_PeerIdentity *other, cons
 	return GNUNET_OK;
 }
 
+void message_notification_handler (struct GNUNET_PeerIdentity *sender,
+				struct gnunet_search_flooding_message *message) {
+
+}
+
 /**
  * Process statistics requests.
  *
@@ -252,7 +257,7 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 			NULL/*&core_inbound_notify*/, 0, NULL, 0, core_handlers);
 
 	gnunet_search_flooding_init();
-	gnunet_search_flooding_data_flood(NULL, NULL, 0);
+	gnunet_search_handlers_set(&message_notification_handler);
 }
 
 /**
