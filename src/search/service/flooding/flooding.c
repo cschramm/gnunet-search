@@ -96,12 +96,19 @@ void gnunet_search_flooding_data_flood(struct GNUNET_PeerIdentity *sender, void 
 	printf("gnunet_search_flooding_data_flood()\n");
 }
 
-static char gnunet_search_flooding_routing_table_id_contains(uint64_t flow_id) {
+static uint8_t gnunet_search_flooding_routing_table_id_get_next_hop_index(size_t *index, uint64_t flow_id) {
 	for (size_t i = 0; i < gnunet_search_flooding_routing_table_length; ++i) {
-		if(gnunet_search_flooding_routing_table[i].flow_id == flow_id)
+		if(gnunet_search_flooding_routing_table[i].flow_id == flow_id) {
+			if(index)
+				*index = i;
 			return 1;
+		}
 	}
 	return 0;
+}
+
+static char gnunet_search_flooding_routing_table_id_contains(uint64_t flow_id) {
+	return gnunet_search_flooding_routing_table_id_get_next_hop_index(NULL, flow_id);
 }
 
 void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity *sender, const struct GNUNET_MessageHeader *message) {
@@ -120,14 +127,34 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity *sen
 		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST: {
 			if(gnunet_search_flooding_routing_table_id_contains(flooding_message->id)) {
 				printf("Message cycle; discarding...\n");
-				return;
+				break;
 			}
+
+			gnunet_search_flooding_routing_table[gnunet_search_flooding_routing_table_index].flow_id = flooding_message->id;
+			gnunet_search_flooding_routing_table[gnunet_search_flooding_routing_table_index].next_hop = sender;
+			gnunet_search_flooding_routing_table_index = (gnunet_search_flooding_routing_table_index + 1)%GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE;
+
 			struct gnunet_search_flooding_message *output_flooding_message = (struct gnunet_search_flooding_message *)malloc(flooding_message_size);
 			memcpy(output_flooding_message, flooding_message, flooding_message_size);
 			output_flooding_message->ttl--;
 			if(output_flooding_message->ttl > 0)
 				gnunet_search_flooding_data_flood(sender, output_flooding_message, flooding_message_size);
 			break;
+		}
+		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE: {
+			size_t next_hop_index;
+			uint8_t found = gnunet_search_flooding_routing_table_id_get_next_hop_index(&next_hop_index, flooding_message->id);
+			if(!found) {
+				printf("Unknown flow; aborting...\n");
+				break;
+			}
+			struct GNUNET_PeerIdentity *next_hop = gnunet_search_flooding_routing_table[next_hop_index].next_hop;
+			if(!next_hop)
+				printf("Yippie, this is response to my request :-).\n");
+			else {
+
+			}
+
 		}
 	}
 }
