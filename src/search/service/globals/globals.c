@@ -9,6 +9,6 @@
 /**
  * Our configuration.
  */
-const struct GNUNET_CONFIGURATION_Handle *gnunet_search_globals_cfg;
-
-const struct GNUNET_CORE_Handle *gnunet_search_globals_core_handle;
+struct GNUNET_CONFIGURATION_Handle const *gnunet_search_globals_cfg;
+struct GNUNET_CORE_Handle const *gnunet_search_globals_core_handle;
+struct GNUNET_DHT_Handle const *gnunet_search_dht_handle;

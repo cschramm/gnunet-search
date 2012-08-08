@@ -35,7 +35,7 @@
 #include "gnunet_protocols_search.h"
 #include "../client/server-communication/server-communication.h"
 #include "../communication/communication.h"
-#include "util/util.h"
+#include "util/client-util.h"
 
 #define GNUNET_SEARCH_ACTION_STRING_SEARCH "search"
 #define GNUNET_SEARCH_ACTION_STRING_ADD "add"

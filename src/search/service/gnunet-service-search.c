@@ -35,17 +35,16 @@
 #include <gnunet/gnunet_core_service.h>
 #include "gnunet_protocols_search.h"
 
-#include "service/url-processor/gnunet-search-url-processor.h"
-#include "service/util/gnunet-search-util.h"
+#include "service/url-processor/url-processor.h"
+#include "service/util/service-util.h"
 #include "service/client-communication/client-communication.h"
 #include "../communication/communication.h"
+#include "dht/dht.h"
 #include "flooding/flooding.h"
 #include "storage/storage.h"
 #include "globals/globals.h"
 
 #include <collections/arraylist/arraylist.h>
-
-static struct GNUNET_DHT_GetHandle *dht_get_handle;
 
 static void search_key_value_generate_simple(char **key_value, const char *action, const char *data) {
 	size_t key_value_length;
@@ -86,58 +85,10 @@ static size_t search_cmd_urls_get(char ***urls, struct search_command const *cmd
 		read_length += url_length + 1;
 		urls_source += url_length + 1;
 		urls_number++;
-
-//		printf("url: %s\n", url);
 	}
 
-//	printf("read_length: %lu\n", read_length);
-
 	fclose(url_stream);
-
-//	printf("urls_length: %lu\n", urls_length);
-
 	return urls_number;
-}
-
-static void search_dht_get_result_iterator_and_send_to_user(void *cls, struct GNUNET_TIME_Absolute exp,
-		const GNUNET_HashCode * key, const struct GNUNET_PeerIdentity * get_path, unsigned int get_path_length,
-		const struct GNUNET_PeerIdentity * put_path, unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-		size_t size, const void *data) {
-
-//	char *dstr = malloc(size + 1);
-//	memcpy(dstr, data, size);
-//	dstr[size] = 0;
-//	printf("Got data: %s\n", dstr);
-//	free(dstr);
-//
-//	printf("Client: %lu\n", cls);
-
-	GNUNET_DHT_get_stop(dht_get_handle);
-
-	//search_send_result("hallo", 6, (struct GNUNET_SERVER_Client *) cls);
-
-	gnunet_search_client_communication_send_result(data, size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT);
-}
-
-static void search_dht_get_and_send_to_user(char const *keyword) {
-	char *key_value;
-	search_key_value_generate_simple(&key_value, "keyword", keyword);
-
-	printf("Searching for: %s\n", key_value);
-
-	//char *keyword = "search:keyword:hallo";
-
-	GNUNET_HashCode hash;
-	GNUNET_CRYPTO_hash(key_value, strlen(key_value), &hash);
-
-	free(key_value);
-
-	dht_get_handle = GNUNET_DHT_get_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, &hash, 3,
-			GNUNET_DHT_RO_NONE, NULL, 0, &search_dht_get_result_iterator_and_send_to_user, NULL);
-}
-
-static void search_process(char const *keyword) {
-	search_dht_get_and_send_to_user(keyword);
 }
 
 static void search_process_flooding(char const *keyword) {
@@ -196,6 +147,7 @@ static void gnunet_service_search_client_message_handle(size_t size, void *buffe
  * @param tc unused
  */
 static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	printf("shutdown_task()\n");
 }
 
 /**
@@ -286,7 +238,6 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 
 	static struct GNUNET_CORE_MessageHandler core_handlers[] = { { &core_inbound_notify,
 			GNUNET_MESSAGE_TYPE_SEARCH_FLOODING, 0 },
-//		/∗morehandlers∗/
 			{ NULL, 0, 0 } };
 
 	gnunet_search_globals_core_handle = GNUNET_CORE_connect(gnunet_search_globals_cfg, 42, NULL, NULL, NULL, NULL,

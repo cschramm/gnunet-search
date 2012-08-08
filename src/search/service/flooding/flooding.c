@@ -62,6 +62,7 @@ static void gnunet_search_flooding_peer_iterate_handler(void *cls, const struct 
 		struct gnunet_search_flooding_data_flood_parameters *parameters =
 				(struct gnunet_search_flooding_data_flood_parameters*) cls;
 		free(parameters->data);
+		free(parameters);
 		return;
 	}
 	struct gnunet_search_flooding_data_flood_parameters *parameters =

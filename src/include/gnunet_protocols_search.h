@@ -41,7 +41,7 @@ extern "C"
  * SEARCH messages
  */
 #define GNUNET_MESSAGE_SEARCH_FLAG_FRAGMENTED (1 << 0)
-#define GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT (1 << 2)
+#define GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT (1 << 1)
 
 struct message_header {
 	uint8_t flags;

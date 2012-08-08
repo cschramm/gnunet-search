@@ -14,7 +14,7 @@
 
 static al_dictionary_t *storage;
 
-static char string_compare(void const *a, void const *b) {
+static char gnunet_search_storage_string_compare(void const *a, void const *b) {
 	char *_a = (char*)a;
 	char *_b = (char*)b;
 	size_t index = 0;
@@ -35,7 +35,7 @@ static char string_compare(void const *a, void const *b) {
 }
 
 void gnunet_search_storage_init() {
-	storage = al_dictionary_construct(&string_compare);
+	storage = al_dictionary_construct(&gnunet_search_storage_string_compare);
 }
 
 void gnunet_search_storage_free() {

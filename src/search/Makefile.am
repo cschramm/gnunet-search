@@ -22,10 +22,11 @@ bin_PROGRAMS = gnunet-service-search gnunet-search gnunet-search-web
 
 gnunet_service_search_SOURCES = \
   service/gnunet-service-search.c \
-  service/url-processor/gnunet-search-url-processor.c \
-  service/util/gnunet-search-util.c \
+  service/url-processor/url-processor.c \
+  service/util/service-util.c \
   service/client-communication/client-communication.c \
   communication/communication.c \
+  service/dht/dht.c \
   service/flooding/flooding.c \
   service/storage/storage.c \
   service/globals/globals.c
@@ -46,7 +47,7 @@ gnunet_search_web_LDFLAGS = \
 
 gnunet_search_SOURCES = \
   cli-client/gnunet-search.c \
-  cli-client/util/util.c \
+  cli-client/util/client-util.c \
   client/server-communication/server-communication.c \
   communication/communication.c
 gnunet_search_LDADD = \

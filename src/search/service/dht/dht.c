@@ -1,7 +1,7 @@
 /*
- * gnunet-search-util.c
+ * dht.c
  *
- *  Created on: Aug 3, 2012
+ *  Created on: Aug 8, 2012
  *      Author: jucs
  */
 
@@ -13,8 +13,36 @@
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_dht_service.h>
+#include "../globals/globals.h"
 
-struct GNUNET_DHT_Handle *gnunet_search_dht_handle;
+//static void search_dht_get_result_iterator_and_send_to_user(void *cls, struct GNUNET_TIME_Absolute exp,
+//		const GNUNET_HashCode * key, const struct GNUNET_PeerIdentity * get_path, unsigned int get_path_length,
+//		const struct GNUNET_PeerIdentity * put_path, unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+//		size_t size, const void *data) {
+//
+//	GNUNET_DHT_get_stop(dht_get_handle);
+//
+//	gnunet_search_client_communication_send_result(data, size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT);
+//}
+//
+//static void search_dht_get_and_send_to_user(char const *keyword) {
+//	char *key_value;
+//	search_key_value_generate_simple(&key_value, "keyword", keyword);
+//
+//	printf("Searching for: %s\n", key_value);
+//
+//	GNUNET_HashCode hash;
+//	GNUNET_CRYPTO_hash(key_value, strlen(key_value), &hash);
+//
+//	free(key_value);
+//
+//	dht_get_handle = GNUNET_DHT_get_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, &hash, 3,
+//			GNUNET_DHT_RO_NONE, NULL, 0, &search_dht_get_result_iterator_and_send_to_user, NULL);
+//}
+//
+//static void search_process(char const *keyword) {
+//	search_dht_get_and_send_to_user(keyword);
+//}
 
 static void gnunet_search_util_dht_string_string_put(const char *key, const char *value) {
 	size_t key_length = strlen(key);

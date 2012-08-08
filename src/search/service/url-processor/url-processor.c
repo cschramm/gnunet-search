@@ -12,7 +12,7 @@
 
 #include <crawl.h>
 
-#include "../util/gnunet-search-util.h"
+#include "../util/service-util.h"
 #include "../storage/storage.h"
 
 void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void const *data, size_t size) {

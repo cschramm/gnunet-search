@@ -35,6 +35,45 @@ static void gnunet_search_server_communication_listeners_notify(size_t size, voi
 	}
 }
 
+static void gnunet_search_server_communication_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static size_t gnunet_search_server_communication_transmit_ready(void *cls, size_t size, void *buffer) {
+
+	size_t msg_size = sizeof(struct GNUNET_MessageHeader);
+
+	struct gnunet_search_server_communication_queued_message *msg =
+			(struct gnunet_search_server_communication_queued_message*) cls;
+	msg_size += msg->size;
+
+	GNUNET_assert(size >= msg_size);
+
+	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) buffer;
+	header->type = GNUNET_MESSAGE_TYPE_SEARCH;
+	header->size = htons(msg_size);
+
+	memcpy(buffer + sizeof(struct GNUNET_MessageHeader), msg->buffer, msg->size);
+
+	free(msg->buffer);
+	free(msg);
+
+	//printf("End of transmit_ready()...\n");
+
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_server_communication_transmit_next, NULL);
+
+	return msg_size;
+}
+
+static void gnunet_search_server_communication_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	if(!queue_get_length(gnunet_search_communication_message_queue))
+		return;
+
+	struct gnunet_search_server_communication_queued_message *msg =
+			(struct gnunet_search_server_communication_queued_message*) queue_dequeue(
+					gnunet_search_communication_message_queue);
+
+	request_notify_transmit_ready(sizeof(struct GNUNET_MessageHeader) + msg->size, msg, &gnunet_search_server_communication_transmit_ready);
+}
+
 void gnunet_search_communication_init(void (*request_notify_transmit_ready_handler)(size_t size, void *cls, size_t (*)(void*, size_t, void*))) {
 	gnunet_search_server_communication_listeners = array_list_construct();
 	gnunet_search_communication_message_queue = queue_construct();
@@ -109,48 +148,11 @@ void gnunet_search_communication_listener_add(void (*listener)(size_t, void*)) {
 	array_list_insert(gnunet_search_server_communication_listeners, listener);
 }
 
-static void gnunet_search_server_communication_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-static size_t gnunet_search_server_communication_transmit_ready(void *cls, size_t size, void *buffer) {
-
-	size_t msg_size = sizeof(struct GNUNET_MessageHeader);
-
-	struct gnunet_search_server_communication_queued_message *msg =
-			(struct gnunet_search_server_communication_queued_message*) cls;
-	msg_size += msg->size;
-
-	GNUNET_assert(size >= msg_size);
-
-	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) buffer;
-	header->type = GNUNET_MESSAGE_TYPE_SEARCH;
-	header->size = htons(msg_size);
-
-	memcpy(buffer + sizeof(struct GNUNET_MessageHeader), msg->buffer, msg->size);
-
-	free(msg->buffer);
-	free(msg);
-
-	//printf("End of transmit_ready()...\n");
-
-	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_server_communication_transmit_next, NULL);
-
-	return msg_size;
-}
-
-static void gnunet_search_server_communication_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
-	if(!queue_get_length(gnunet_search_communication_message_queue))
-		return;
-
-	struct gnunet_search_server_communication_queued_message *msg =
-			(struct gnunet_search_server_communication_queued_message*) queue_dequeue(
-					gnunet_search_communication_message_queue);
-
-	request_notify_transmit_ready(sizeof(struct GNUNET_MessageHeader) + msg->size, msg, &gnunet_search_server_communication_transmit_ready);
-}
-
 void gnunet_search_communication_transmit(void *data, size_t size) {
 	size_t maximal_payload_size = GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct message_header)
-			- sizeof(struct GNUNET_MessageHeader) /*- 65522 +60*/;
+			- sizeof(struct GNUNET_MessageHeader);
+	maximal_payload_size = 5;
+
 
 	char fragmented = 0;
 	size_t data_left = size;
