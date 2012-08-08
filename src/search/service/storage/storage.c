@@ -15,7 +15,23 @@
 static al_dictionary_t *storage;
 
 static char string_compare(void const *a, void const *b) {
-	return strcmp((char*) a, (char*) b);
+	char *_a = (char*)a;
+	char *_b = (char*)b;
+	size_t index = 0;
+	while(1) {
+		if(!_a[index] && _b[index])
+			return -1;
+		if(_a[index] && !_b[index])
+			return 1;
+		if(!_a[index] && !_b[index])
+			break;
+		if(_a[index] < _b[index])
+			return -1;
+		else if(_a[index] > _b[index])
+			return 1;
+		index++;
+	}
+	return 0;
 }
 
 void gnunet_search_storage_init() {
@@ -35,7 +51,7 @@ void gnunet_search_storage_key_value_add(char const *key, char const *value) {
 	size_t key_length = strlen(key);
 	size_t value_length = strlen(value);
 
-	array_list_t const *known_values;
+	array_list_t *known_values;
 
 	if(search_result) {
 		known_values = array_list_construct();
@@ -67,7 +83,7 @@ void gnunet_search_storage_key_value_add(char const *key, char const *value) {
 	}
 }
 
-array_list_t *gnunet_search_storage_value_get(char const *key) {
+array_list_t *gnunet_search_storage_values_get(char const *key) {
 	char search_result;
 	array_list_t *from_storage = (array_list_t*) al_dictionary_get(storage, &search_result, key);
 

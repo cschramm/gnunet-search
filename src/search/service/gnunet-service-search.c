@@ -234,15 +234,15 @@ void message_notification_handler(struct GNUNET_PeerIdentity *sender,
 			/*
 			 * Todo: Security!!! (Länge muss gepüft werden)
 			 */
-			char *key = (char*) flooding_message + 1;
-			printf("a: %s...\n", key);
-			array_list_t *values = gnunet_search_storage_value_get(key);
+			char *key = (char*)(flooding_message + 1);
+//			printf("a: %s...\n", key);
+			array_list_t *values = gnunet_search_storage_values_get(key);
 			if(values) {
 				char *values_serialized;
 				size_t values_serialized_size = gnunet_search_storage_value_serialize(&values_serialized, values,
 						GNUNET_SEARCH_FLOODING_MESSAGE_MAXIMAL_PAYLOAD_SIZE);
 
-				printf("b...\n");
+//				printf("b...\n");
 
 				gnunet_search_flooding_peer_response_flood(values_serialized, values_serialized_size,
 						flooding_message->flow_id);

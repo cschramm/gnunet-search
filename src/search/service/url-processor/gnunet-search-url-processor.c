@@ -33,7 +33,7 @@ void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void
 	memcpy(url, data + position, url_length);
 	url[url_length] = 0;
 
-	printf("Parameter: %u; url: %s\n", parameter, url);
+//	printf("Parameter: %u; url: %s\n", parameter, url);
 
 	char **urls;
 	size_t urls_size;
@@ -47,13 +47,13 @@ void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void
 		gnunet_search_util_dht_url_list_put(urls, urls_size, parameter - 1);
 
 	for (size_t i = 0; i < urls_size; ++i) {
-		printf("URL: %s\n", urls[i]);
+//		printf("URL: %s\n", urls[i]);
 		free(urls[i]);
 	}
 
 	for (size_t i = 0; i < keywords_size; ++i) {
-		printf("Keyword: %s\n", keywords[i]);
-		gnunet_search_storage_key_value_add(url, keywords[i]);
+//		printf("Keyword: %s\n", keywords[i]);
+		gnunet_search_storage_key_value_add(keywords[i], url);
 		free(keywords[i]);
 	}
 

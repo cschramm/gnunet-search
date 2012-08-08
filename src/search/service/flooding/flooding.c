@@ -127,13 +127,12 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity *sen
 
 	struct gnunet_search_flooding_message *flooding_message = (struct gnunet_search_flooding_message*)(message + 1);
 
+//	printf("data^2: %s\n", flooding_message + 1);
+
 	size_t flooding_message_size = message_size - sizeof(struct GNUNET_MessageHeader);
 
 	switch(flooding_message->type) {
 		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST: {
-			if(_message_notification_handler)
-				_message_notification_handler(sender, flooding_message, flooding_message_size);
-
 			if(gnunet_search_flooding_routing_table_id_contains(flooding_message->flow_id)) {
 				printf("Message cycle; discarding...\n");
 				break;
@@ -142,6 +141,11 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity *sen
 			gnunet_search_flooding_routing_table[gnunet_search_flooding_routing_table_index].flow_id = flooding_message->flow_id;
 			gnunet_search_flooding_routing_table[gnunet_search_flooding_routing_table_index].next_hop = sender;
 			gnunet_search_flooding_routing_table_index = (gnunet_search_flooding_routing_table_index + 1)%GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE;
+			if(gnunet_search_flooding_routing_table_length < GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE)
+				gnunet_search_flooding_routing_table_length++;
+
+			if(_message_notification_handler)
+				_message_notification_handler(sender, flooding_message, flooding_message_size);
 
 			struct gnunet_search_flooding_message *output_flooding_message = (struct gnunet_search_flooding_message *)malloc(flooding_message_size);
 			memcpy(output_flooding_message, flooding_message, flooding_message_size);
@@ -191,6 +195,8 @@ static void gnunet_search_flooding_peer_data_flood(void const *data, size_t data
 	flooding_message->flow_id = flow_id;
 	flooding_message->ttl = 16;
 	flooding_message->type = type;
+
+	memcpy(flooding_message + 1, data, data_size);
 
 	gnunet_search_flooding_peer_request_message_flood(message);
 
