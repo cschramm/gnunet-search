@@ -40,7 +40,10 @@
 #include "service/client-communication/client-communication.h"
 #include "../communication/communication.h"
 #include "flooding/flooding.h"
+#include "storage/storage.h"
 #include "globals/globals.h"
+
+#include <collections/arraylist/arraylist.h>
 
 static struct GNUNET_DHT_GetHandle *dht_get_handle;
 
@@ -137,6 +140,10 @@ static void search_process(char const *keyword) {
 	search_dht_get_and_send_to_user(keyword);
 }
 
+static void search_process_flooding(char const *keyword) {
+	gnunet_search_flooding_peer_request_flood(keyword, strlen(keyword) + 1);
+}
+
 /**
  * Handle message from client.
  *
@@ -161,7 +168,8 @@ static void gnunet_service_search_client_message_handle(size_t size, void *buffe
 
 		printf("Searching keyword: %s...\n", keyword);
 
-		search_process(keyword);
+//		search_process(keyword);
+		search_process_flooding(keyword);
 
 		free(keyword);
 	}
@@ -219,9 +227,37 @@ int core_inbound_notify(void *cls, const struct GNUNET_PeerIdentity *other, cons
 	return GNUNET_OK;
 }
 
-void message_notification_handler (struct GNUNET_PeerIdentity *sender,
-				struct gnunet_search_flooding_message *message) {
+void message_notification_handler(struct GNUNET_PeerIdentity *sender,
+		struct gnunet_search_flooding_message *flooding_message, size_t flooding_message_size) {
+	switch(flooding_message->type) {
+		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST: {
+			/*
+			 * Todo: Security!!! (Länge muss gepüft werden)
+			 */
+			char *key = (char*) flooding_message + 1;
+			printf("a: %s...\n", key);
+			array_list_t *values = gnunet_search_storage_value_get(key);
+			if(values) {
+				char *values_serialized;
+				size_t values_serialized_size = gnunet_search_storage_value_serialize(&values_serialized, values,
+						GNUNET_SEARCH_FLOODING_MESSAGE_MAXIMAL_PAYLOAD_SIZE);
 
+				printf("b...\n");
+
+				gnunet_search_flooding_peer_response_flood(values_serialized, values_serialized_size,
+						flooding_message->flow_id);
+
+				free(values_serialized);
+			}
+			break;
+		}
+		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE: {
+			void *data = flooding_message + 1;
+			size_t data_size = flooding_message_size - sizeof(struct gnunet_search_flooding_message);
+			gnunet_search_client_communication_send_result(data, data_size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT);
+			break;
+		}
+	}
 }
 
 /**
@@ -258,6 +294,8 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 
 	gnunet_search_flooding_init();
 	gnunet_search_handlers_set(&message_notification_handler);
+
+	gnunet_search_storage_init();
 }
 
 /**

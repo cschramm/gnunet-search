@@ -13,6 +13,7 @@
 #include <crawl.h>
 
 #include "../util/gnunet-search-util.h"
+#include "../storage/storage.h"
 
 void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void const *data, size_t size) {
 	size_t position = prefix_length;
@@ -52,6 +53,7 @@ void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void
 
 	for (size_t i = 0; i < keywords_size; ++i) {
 		printf("Keyword: %s\n", keywords[i]);
+		gnunet_search_storage_key_value_add(url, keywords[i]);
 		free(keywords[i]);
 	}
 

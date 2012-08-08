@@ -48,7 +48,7 @@ void gnunet_search_storage_key_value_add(char const *key, char const *value) {
 
 		array_list_insert(known_values, value_copy);
 
-		al_dictionary_insert(storage, key_copy, value_copy);
+		al_dictionary_insert(storage, key_copy, known_values);
 	} else {
 		known_values = (array_list_t const*) from_storage;
 
@@ -69,7 +69,7 @@ void gnunet_search_storage_key_value_add(char const *key, char const *value) {
 
 array_list_t *gnunet_search_storage_value_get(char const *key) {
 	char search_result;
-	array_list_t *from_storage = (array_list_t*)al_dictionary_get(storage, &search_result, key);
+	array_list_t *from_storage = (array_list_t*) al_dictionary_get(storage, &search_result, key);
 
 	if(search_result)
 		return NULL;
@@ -77,25 +77,24 @@ array_list_t *gnunet_search_storage_value_get(char const *key) {
 		return from_storage;
 }
 
-char *gnunet_search_storage_value_serialize(array_list_t *values, size_t maximal_size) {
-	char *buffer;
+size_t gnunet_search_storage_value_serialize(char **buffer, array_list_t *values, size_t maximal_size) {
 	size_t buffer_size;
 
-	FILE *memstream = open_memstream(&buffer, &buffer_size);
+	FILE *memstream = open_memstream(buffer, &buffer_size);
 
 	size_t values_length = array_list_get_length(values);
-	for (long int i = 0; i < values_length; ++i) {
+	for(long int i = 0; i < values_length; ++i) {
 		char *next;
 		array_list_get(values, &next, i);
 		size_t next_size = strlen(next) + 1;
 		fflush(memstream);
 		if(buffer_size + next_size <= maximal_size)
-			fwrite(next, 1, next_length + 1, memstream);
+			fwrite(next, 1, next_size + 1, memstream);
 		else
 			break;
 	}
 
 	fclose(memstream);
 
-	return buffer;
+	return buffer_size;
 }
