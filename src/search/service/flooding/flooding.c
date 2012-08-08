@@ -175,7 +175,7 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity *sen
 	}
 }
 
-void gnunet_search_flooding_peer_request_message_flood(const struct GNUNET_MessageHeader *message) {
+void gnunet_search_flooding_peer_request_message_flood(struct GNUNET_MessageHeader const *message) {
 	gnunet_search_flooding_peer_message_process(NULL, message);
 }
 

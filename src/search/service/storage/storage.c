@@ -9,10 +9,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "storage.h"
 #include "../globals/globals.h"
-
-#include <collections/aldictionary/aldictionary.h>
-#include <collections/arraylist/arraylist.h>
 
 static al_dictionary_t *storage;
 
@@ -30,7 +28,7 @@ void gnunet_search_storage_free() {
 	 */
 }
 
-void gnunet_search_key_value_add(char const *key, char const *value) {
+void gnunet_search_storage_key_value_add(char const *key, char const *value) {
 	char search_result;
 	void const *from_storage = al_dictionary_get(storage, &search_result, key);
 
@@ -69,7 +67,7 @@ void gnunet_search_key_value_add(char const *key, char const *value) {
 	}
 }
 
-array_list_t *gnunet_search_value_get(char const *key) {
+array_list_t *gnunet_search_storage_value_get(char const *key) {
 	char search_result;
 	array_list_t *from_storage = (array_list_t*)al_dictionary_get(storage, &search_result, key);
 
@@ -77,4 +75,27 @@ array_list_t *gnunet_search_value_get(char const *key) {
 		return NULL;
 	else
 		return from_storage;
+}
+
+char *gnunet_search_storage_value_serialize(array_list_t *values, size_t maximal_size) {
+	char *buffer;
+	size_t buffer_size;
+
+	FILE *memstream = open_memstream(&buffer, &buffer_size);
+
+	size_t values_length = array_list_get_length(values);
+	for (long int i = 0; i < values_length; ++i) {
+		char *next;
+		array_list_get(values, &next, i);
+		size_t next_size = strlen(next) + 1;
+		fflush(memstream);
+		if(buffer_size + next_size <= maximal_size)
+			fwrite(next, 1, next_length + 1, memstream);
+		else
+			break;
+	}
+
+	fclose(memstream);
+
+	return buffer;
 }

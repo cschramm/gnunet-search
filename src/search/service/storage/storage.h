@@ -8,7 +8,13 @@
 #ifndef STORAGE_H_
 #define STORAGE_H_
 
+#include <collections/aldictionary/aldictionary.h>
+#include <collections/arraylist/arraylist.h>
 
-
+extern void gnunet_search_storage_init();
+extern void gnunet_search_storage_free();
+extern void gnunet_search_storage_key_value_add(char const *key, char const *value);
+extern array_list_t *gnunet_search_storage_value_get(char const *key);
+extern char *gnunet_search_storage_value_serialize(array_list_t *values, size_t maximal_size);
 
 #endif /* STORAGE_H_ */
