@@ -105,7 +105,7 @@ size_t gnunet_search_storage_value_serialize(char **buffer, array_list_t *values
 		size_t next_size = strlen(next) + 1;
 		fflush(memstream);
 		if(buffer_size + next_size <= maximal_size)
-			fwrite(next, 1, next_size + 1, memstream);
+			fwrite(next, 1, next_size, memstream);
 		else
 			break;
 	}

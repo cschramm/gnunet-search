@@ -65,9 +65,13 @@ static void gnunet_search_receive_handler(size_t size, void *buffer) {
 			memcpy(result, response + 1, result_length);
 			result[result_length] = 0;
 
-			printf("Server result: %s\n", result);
+			gnunet_search_util_replace(result, result_length, 0, '\n');
+
+			printf("Server result: \n%s-----------\n", result);
 
 			free(result);
+
+			gnunet_search_server_communication_receive();
 		}
 	}
 }

@@ -76,7 +76,7 @@ size_t gnunet_search_util_urls_read(char ***urls, const char *file) {
 
 size_t gnunet_search_util_serialize(char const * const *urls, size_t urls_length, void **buffer) {
 	size_t serialized_size;
-	FILE *memstream = open_memstream((char**)buffer, &serialized_size);
+	FILE *memstream = open_memstream((char**) buffer, &serialized_size);
 
 	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
 
@@ -89,4 +89,10 @@ size_t gnunet_search_util_serialize(char const * const *urls, size_t urls_length
 	fclose(memstream);
 
 	return serialized_size;
+}
+
+void gnunet_search_util_replace(char *text, size_t size, char a, char b) {
+	for(size_t index = 0; index < size; ++index)
+		if(text[index] == a)
+			text[index] = b;
 }
