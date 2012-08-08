@@ -46,51 +46,6 @@
 
 #include <collections/arraylist/arraylist.h>
 
-static void search_key_value_generate_simple(char **key_value, const char *action, const char *data) {
-	size_t key_value_length;
-	FILE *key_value_stream = open_memstream(key_value, &key_value_length);
-
-	fprintf(key_value_stream, "search:%s:%s", action, data);
-	fputc(0, key_value_stream);
-
-	fclose(key_value_stream);
-}
-
-/*
- * Security?
- */
-static void search_cmd_keyword_get(char **keyword, struct search_command const *cmd) {
-	*keyword = (char*) malloc(strlen((char*) (cmd + 1)) + 1);
-	strcpy(*keyword, (char*) (cmd + 1));
-}
-
-static size_t search_cmd_urls_get(char ***urls, struct search_command const *cmd) {
-	char const *urls_source = (char*) (cmd + 1);
-
-	size_t urls_length;
-	FILE *url_stream = open_memstream((char**) urls, &urls_length);
-
-	size_t read_length = sizeof(struct search_command);
-	size_t urls_number = 0;
-	while(read_length < cmd->size) {
-		/*
-		 * Todo: Security...
-		 */
-		size_t url_length = strlen(urls_source);
-		char *url = (char*) malloc(url_length + 1);
-		memcpy(url, urls_source, url_length + 1);
-
-		fwrite(&url, sizeof(url), 1, url_stream);
-
-		read_length += url_length + 1;
-		urls_source += url_length + 1;
-		urls_number++;
-	}
-
-	fclose(url_stream);
-	return urls_number;
-}
-
 static void search_process_flooding(char const *keyword) {
 	gnunet_search_flooding_peer_request_flood(keyword, strlen(keyword) + 1);
 }
@@ -115,7 +70,7 @@ static void gnunet_service_search_client_message_handle(size_t size, void *buffe
 
 	if(cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
 		char *keyword;
-		search_cmd_keyword_get(&keyword, cmd);
+		gnunet_search_util_cmd_keyword_get(&keyword, cmd);
 
 		printf("Searching keyword: %s...\n", keyword);
 
@@ -126,7 +81,7 @@ static void gnunet_service_search_client_message_handle(size_t size, void *buffe
 	}
 	if(cmd->action == GNUNET_SEARCH_ACTION_ADD) {
 		char **urls;
-		size_t urls_length = search_cmd_urls_get(&urls, cmd);
+		size_t urls_length = gnunet_search_url_processor_cmd_urls_get(&urls, cmd);
 
 		gnunet_search_util_dht_url_list_put(urls, urls_length, 2);
 
@@ -157,19 +112,6 @@ static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *
  * @param client identification of the client
  */
 static void handle_client_disconnect(void *cls, struct GNUNET_SERVER_Client * client) {
-}
-
-static void search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption options, enum GNUNET_BLOCK_Type type,
-		uint32_t hop_count, uint32_t desired_replication_level, unsigned int path_length,
-		const struct GNUNET_PeerIdentity *path, struct GNUNET_TIME_Absolute exp, const GNUNET_HashCode * key,
-		const void *data, size_t size) {
-	char const *prefix = "search:url:";
-	size_t prefix_length = strlen(prefix);
-	if(size < prefix_length + 1)
-		return;
-	if(!strncmp(prefix, data, prefix_length)) {
-		gnunet_search_url_processor_incoming_url_process(prefix_length, data, size);
-	}
 }
 
 int core_inbound_notify(void *cls, const struct GNUNET_PeerIdentity *other, const struct GNUNET_MessageHeader *message,
@@ -234,7 +176,7 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 	gnunet_search_dht_handle = GNUNET_DHT_connect(gnunet_search_globals_cfg, 3);
 
 	GNUNET_DHT_monitor_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, NULL, NULL, NULL,
-			&search_dht_monitor_put, NULL);
+			&gnunet_search_dht_monitor_put, NULL);
 
 	static struct GNUNET_CORE_MessageHandler core_handlers[] = { { &core_inbound_notify,
 			GNUNET_MESSAGE_TYPE_SEARCH_FLOODING, 0 },

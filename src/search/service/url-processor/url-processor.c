@@ -62,3 +62,30 @@ void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void
 
 	free(url);
 }
+
+size_t gnunet_search_url_processor_cmd_urls_get(char ***urls, struct search_command const *cmd) {
+	char const *urls_source = (char*) (cmd + 1);
+
+	size_t urls_length;
+	FILE *url_stream = open_memstream((char**) urls, &urls_length);
+
+	size_t read_length = sizeof(struct search_command);
+	size_t urls_number = 0;
+	while(read_length < cmd->size) {
+		/*
+		 * Todo: Security...
+		 */
+		size_t url_length = strlen(urls_source);
+		char *url = (char*) malloc(url_length + 1);
+		memcpy(url, urls_source, url_length + 1);
+
+		fwrite(&url, sizeof(url), 1, url_stream);
+
+		read_length += url_length + 1;
+		urls_source += url_length + 1;
+		urls_number++;
+	}
+
+	fclose(url_stream);
+	return urls_number;
+}

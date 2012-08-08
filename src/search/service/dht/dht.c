@@ -10,10 +10,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
-#include <gnunet/gnunet_dht_service.h>
+#include "dht.h"
+
 #include "../globals/globals.h"
+#include "../url-processor/url-processor.h"
 
 //static void search_dht_get_result_iterator_and_send_to_user(void *cls, struct GNUNET_TIME_Absolute exp,
 //		const GNUNET_HashCode * key, const struct GNUNET_PeerIdentity * get_path, unsigned int get_path_length,
@@ -52,11 +52,13 @@ static void gnunet_search_util_dht_string_string_put(const char *key, const char
 
 	size_t value_length = strlen(value);
 
-	GNUNET_DHT_put(gnunet_search_dht_handle, &hash, 2, GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_TEST, value_length + 1, value,
-			GNUNET_TIME_absolute_get_forever_(), GNUNET_TIME_relative_get_forever_(), /*&message_sent_cont*/NULL, NULL);
+	GNUNET_DHT_put(gnunet_search_dht_handle, &hash, 2, GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_TEST, value_length + 1,
+			value, GNUNET_TIME_absolute_get_forever_(), GNUNET_TIME_relative_get_forever_(), /*&message_sent_cont*/NULL,
+			NULL);
 }
 
-static void gnunet_search_util_key_value_generate(char **key_value, const char *action, unsigned int parameter, const char *data) {
+static void gnunet_search_util_key_value_generate(char **key_value, const char *action, unsigned int parameter,
+		const char *data) {
 	size_t key_value_length;
 	FILE *key_value_stream = open_memstream(key_value, &key_value_length);
 
@@ -67,7 +69,7 @@ static void gnunet_search_util_key_value_generate(char **key_value, const char *
 }
 
 void gnunet_search_util_dht_url_list_put(char **urls, size_t size, unsigned int parameter) {
-	for (int i = 0; i < size; ++i) {
+	for(int i = 0; i < size; ++i) {
 		char *key_value;
 		gnunet_search_util_key_value_generate(&key_value, "url", parameter, urls[i]);
 
@@ -78,3 +80,17 @@ void gnunet_search_util_dht_url_list_put(char **urls, size_t size, unsigned int 
 		free(key_value);
 	}
 }
+
+void gnunet_search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption options, enum GNUNET_BLOCK_Type type,
+		uint32_t hop_count, uint32_t desired_replication_level, unsigned int path_length,
+		const struct GNUNET_PeerIdentity *path, struct GNUNET_TIME_Absolute exp, const GNUNET_HashCode * key,
+		const void *data, size_t size) {
+	char const *prefix = "search:url:";
+	size_t prefix_length = strlen(prefix);
+	if(size < prefix_length + 1)
+		return;
+	if(!strncmp(prefix, data, prefix_length)) {
+		gnunet_search_url_processor_incoming_url_process(prefix_length, data, size);
+	}
+}
+
