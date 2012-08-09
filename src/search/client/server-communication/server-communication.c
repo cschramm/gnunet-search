@@ -21,10 +21,12 @@
 
 static struct GNUNET_CLIENT_Connection *client_connection;
 
-static void gnunet_search_server_communication_receive_response(void *cls, const struct GNUNET_MessageHeader *gnunet_message) {
+static void gnunet_search_server_communication_receive_response(void *cls,
+		const struct GNUNET_MessageHeader *gnunet_message) {
 	char more_messages = gnunet_search_communication_receive(gnunet_message);
 	if(more_messages)
-		GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL, GNUNET_TIME_relative_get_forever_());
+		GNUNET_CLIENT_receive(client_connection, &gnunet_search_server_communication_receive_response, NULL,
+				GNUNET_TIME_relative_get_forever_());
 }
 
 static void gnunet_search_server_communication_request_notify_transmit_ready(size_t size, void *cls,
@@ -37,10 +39,12 @@ void gnunet_search_server_communication_receive() {
 			GNUNET_TIME_relative_get_forever_());
 }
 
-void gnunet_search_server_communication_init(const struct GNUNET_CONFIGURATION_Handle *cfg) {
+char gnunet_search_server_communication_init(const struct GNUNET_CONFIGURATION_Handle *cfg) {
 	client_connection = GNUNET_CLIENT_connect("search", cfg);
 	gnunet_search_communication_init(&gnunet_search_server_communication_request_notify_transmit_ready);
+	return client_connection != NULL;
 }
 
 void gnunet_search_server_communication_free() {
+	gnunet_search_communication_free();
 }

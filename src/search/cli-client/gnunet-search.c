@@ -56,6 +56,9 @@ static void gnunet_search_receive_handler(size_t size, void *buffer) {
 	switch(response->type) {
 		case GNUNET_SEARCH_RESPONSE_TYPE_DONE: {
 			printf("Server: Done\n");
+
+			GNUNET_SCHEDULER_shutdown();
+
 			break;
 		}
 		case GNUNET_SEARCH_RESPONSE_TYPE_RESULT: {
@@ -117,6 +120,8 @@ static void gnunet_search_transmit_keyword(const char *keyword) {
 }
 
 static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	gnunet_search_server_communication_free();
+
 	exit(0);
 }
 
@@ -136,7 +141,12 @@ static void gnunet_search_run(void *cls, char * const *args, const char *cfgfile
 //	printf("action: %s\n", action_string);
 //	printf("file: %s\n", file_string);
 
-	gnunet_search_server_communication_init(cfg);
+	char success = gnunet_search_server_communication_init(cfg);
+	if(!success) {
+		printf("Unable to connect to service.\n");
+		GNUNET_SCHEDULER_shutdown();
+		return;
+	}
 	gnunet_search_communication_listener_add(&gnunet_search_receive_handler);
 	gnunet_search_server_communication_receive();
 
