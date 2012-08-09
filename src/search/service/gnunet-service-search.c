@@ -125,6 +125,9 @@ static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *
  * @param client identification of the client
  */
 static void handle_client_disconnect(void *cls, struct GNUNET_SERVER_Client * client) {
+	/*
+	 * Todo: Flush message queue...
+	 */
 }
 
 void gnunet_search_message_notification_handler(struct GNUNET_PeerIdentity const *sender,

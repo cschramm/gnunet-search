@@ -122,7 +122,7 @@ static int gnunet_search_flooding_core_inbound_notify(void *cls, const struct GN
 
 void gnunet_search_flooding_init() {
 	gnunet_search_flooding_routing_table = (struct gnunet_search_flooding_routing_entry *) malloc(
-			sizeof(struct gnunet_search_flooding_routing_entry *) * GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE);
+			sizeof(struct gnunet_search_flooding_routing_entry) * GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE);
 	gnunet_search_flooding_routing_table_length = 0;
 	gnunet_search_flooding_routing_table_index = 0;
 	_message_notification_handler = NULL;
