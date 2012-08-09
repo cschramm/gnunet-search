@@ -28,8 +28,8 @@ static void gnunet_search_server_communication_receive_response(void *cls, const
 }
 
 static void gnunet_search_server_communication_request_notify_transmit_ready(size_t size, void *cls,
-		size_t (*handler)(void*, size_t, void*)) {
-	GNUNET_CLIENT_notify_transmit_ready(client_connection, size, GNUNET_TIME_relative_get_forever_(), 1, handler, cls);
+		size_t (*handler)(void*, size_t, void*), struct GNUNET_TIME_Relative max_delay) {
+	GNUNET_CLIENT_notify_transmit_ready(client_connection, size, max_delay, 1, handler, cls);
 }
 
 void gnunet_search_server_communication_receive() {

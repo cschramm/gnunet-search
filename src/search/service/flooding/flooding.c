@@ -29,7 +29,9 @@ static struct gnunet_search_flooding_routing_entry *gnunet_search_flooding_routi
 static size_t gnunet_search_flooding_routing_table_length;
 static size_t gnunet_search_flooding_routing_table_index;
 
-void (*_message_notification_handler)(struct GNUNET_PeerIdentity const *sender, struct gnunet_search_flooding_message *, size_t);
+static struct GNUNET_CORE_Handle *gnunet_search_dht_core_handle;
+
+static void (*_message_notification_handler)(struct GNUNET_PeerIdentity const *sender, struct gnunet_search_flooding_message *, size_t);
 
 static size_t gnunet_search_flooding_notify_transmit_ready(void *cls, size_t size, void *buffer) {
 	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) cls;
@@ -38,7 +40,7 @@ static size_t gnunet_search_flooding_notify_transmit_ready(void *cls, size_t siz
 	GNUNET_assert(size >= message_size);
 
 	memcpy(buffer, cls, message_size);
-	free(cls);
+//	free(cls);
 	return message_size;
 }
 
@@ -57,7 +59,7 @@ static void gnunet_search_flooding_to_peer_message_send(const struct GNUNET_Peer
 
 	struct GNUNET_TIME_Relative gct = GNUNET_TIME_relative_add(GNUNET_TIME_relative_get_minute_(), GNUNET_TIME_relative_get_second_());
 
-	GNUNET_CORE_notify_transmit_ready(gnunet_search_globals_core_handle, 0, 0, GNUNET_TIME_relative_get_minute_(),
+	GNUNET_CORE_notify_transmit_ready(gnunet_search_dht_core_handle, 0, 0, GNUNET_TIME_relative_get_minute_(),
 			peer, message_size, &gnunet_search_flooding_notify_transmit_ready, buffer);
 	GNUNET_SCHEDULER_add_delayed(gct, &gnunet_search_flooding_buffer_free_task, buffer);
 }
@@ -112,15 +114,30 @@ static char gnunet_search_flooding_routing_table_id_contains(uint64_t flow_id) {
 	return gnunet_search_flooding_routing_table_id_get_next_hop_index(NULL, flow_id);
 }
 
+static int gnunet_search_flooding_core_inbound_notify(void *cls, const struct GNUNET_PeerIdentity *other, const struct GNUNET_MessageHeader *message,
+		const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count) {
+	gnunet_search_flooding_peer_message_process(other, message);
+	return GNUNET_OK;
+}
+
 void gnunet_search_flooding_init() {
 	gnunet_search_flooding_routing_table = (struct gnunet_search_flooding_routing_entry *) malloc(
 			sizeof(struct gnunet_search_flooding_routing_entry *) * GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE);
 	gnunet_search_flooding_routing_table_length = 0;
 	gnunet_search_flooding_routing_table_index = 0;
 	_message_notification_handler = NULL;
+
+	static struct GNUNET_CORE_MessageHandler core_handlers[] = { { &gnunet_search_flooding_core_inbound_notify,
+			GNUNET_MESSAGE_TYPE_SEARCH_FLOODING, 0 },
+			{ NULL, 0, 0 } };
+
+	gnunet_search_dht_core_handle = GNUNET_CORE_connect(gnunet_search_globals_cfg, 42, NULL, NULL, NULL, NULL,
+			NULL/*&gnunet_search_flooding_core_inbound_notify*/, 0, NULL, 0, core_handlers);
 }
 
 void gnunet_search_flooding_free() {
+	GNUNET_CORE_disconnect(gnunet_search_dht_core_handle);
+
 	free(gnunet_search_flooding_routing_table);
 }
 

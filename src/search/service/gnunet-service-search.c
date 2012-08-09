@@ -47,6 +47,7 @@
 
 #include <collections/arraylist/arraylist.h>
 
+
 static void gnunet_search_process_flooding(char const *keyword) {
 	gnunet_search_flooding_peer_request_flood(keyword, strlen(keyword) + 1);
 }
@@ -84,7 +85,7 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 		char **urls;
 		size_t urls_length = gnunet_search_url_processor_cmd_urls_get(&urls, cmd);
 
-		gnunet_search_util_dht_url_list_put(urls, urls_length, 2);
+		gnunet_search_dht_url_list_put(urls, urls_length, 2);
 
 		gnunet_search_client_communication_send_result(NULL, 0, GNUNET_SEARCH_RESPONSE_TYPE_DONE);
 
@@ -103,7 +104,18 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
  * @param tc unused
  */
 static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
-	exit(0);
+	gnunet_search_dht_free();
+	gnunet_search_client_communication_free();
+	gnunet_search_flooding_free();
+	gnunet_search_storage_free();
+
+	GNUNET_CONFIGURATION_destroy(gnunet_search_globals_cfg);
+
+	/*
+	 * Todo: Scheduler?
+	 */
+
+//	exit(0);
 }
 
 /**
@@ -113,13 +125,6 @@ static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *
  * @param client identification of the client
  */
 static void handle_client_disconnect(void *cls, struct GNUNET_SERVER_Client * client) {
-}
-
-int core_inbound_notify(void *cls, const struct GNUNET_PeerIdentity *other, const struct GNUNET_MessageHeader *message,
-		const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count) {
-	gnunet_search_flooding_peer_message_process(other, message);
-
-	return GNUNET_OK;
 }
 
 void gnunet_search_message_notification_handler(struct GNUNET_PeerIdentity const *sender,
@@ -163,8 +168,6 @@ void gnunet_search_message_notification_handler(struct GNUNET_PeerIdentity const
  * @param c configuration to use
  */
 static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c) {
-	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
-
 	gnunet_search_client_communication_init();
 	gnunet_search_communication_listener_add(&gnunet_search_client_message_handle);
 
@@ -174,24 +177,15 @@ static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *se
 	gnunet_search_globals_cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
 	GNUNET_SERVER_disconnect_notify(server, &handle_client_disconnect, NULL);
-	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
 
-	gnunet_search_dht_handle = GNUNET_DHT_connect(gnunet_search_globals_cfg, 3);
-
-	GNUNET_DHT_monitor_start(gnunet_search_dht_handle, GNUNET_BLOCK_TYPE_TEST, NULL, NULL, NULL,
-			&gnunet_search_dht_monitor_put, NULL);
-
-	static struct GNUNET_CORE_MessageHandler core_handlers[] = { { &core_inbound_notify,
-			GNUNET_MESSAGE_TYPE_SEARCH_FLOODING, 0 },
-			{ NULL, 0, 0 } };
-
-	gnunet_search_globals_core_handle = GNUNET_CORE_connect(gnunet_search_globals_cfg, 42, NULL, NULL, NULL, NULL,
-			NULL/*&core_inbound_notify*/, 0, NULL, 0, core_handlers);
+	gnunet_search_dht_init();
 
 	gnunet_search_flooding_init();
 	gnunet_search_handlers_set(&gnunet_search_message_notification_handler);
 
 	gnunet_search_storage_init();
+
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
 }
 
 /**

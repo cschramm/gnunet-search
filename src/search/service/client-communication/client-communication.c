@@ -27,12 +27,16 @@ void gnunet_search_client_communication_message_handle(void *cls, struct GNUNET_
 }
 
 static void gnunet_search_client_communication_request_notify_transmit_ready(size_t size, void *cls,
-		size_t (*handler)(void*, size_t, void*)) {
-	GNUNET_SERVER_notify_transmit_ready(_client, size, GNUNET_TIME_relative_get_forever_(), handler, cls);
+		size_t (*handler)(void*, size_t, void*), struct GNUNET_TIME_Relative max_delay) {
+	GNUNET_SERVER_notify_transmit_ready(_client, size, max_delay, handler, cls);
 }
 
 void gnunet_search_client_communication_init() {
 	gnunet_search_communication_init(&gnunet_search_client_communication_request_notify_transmit_ready);
+}
+
+void gnunet_search_client_communication_free() {
+	gnunet_search_communication_free();
 }
 
 void gnunet_search_client_communication_send_result(void const *data, size_t size, char type) {

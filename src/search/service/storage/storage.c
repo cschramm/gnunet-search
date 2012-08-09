@@ -39,10 +39,20 @@ void gnunet_search_storage_init() {
 	storage = al_dictionary_construct(&gnunet_search_storage_string_compare);
 }
 
+static void gnunet_search_storage_string_arraylist_free(void *arraylist) {
+	array_list_t *_arraylist = (array_list_t*)arraylist;
+	size_t _arraylist_size = array_list_get_length(_arraylist);
+	for (long int i = 0; i < _arraylist_size; ++i) {
+		void *value;
+		array_list_get(_arraylist, (void const **)&value, i);
+		free(value);
+	}
+	array_list_free(_arraylist);
+}
+
 void gnunet_search_storage_free() {
-	/*
-	 * Todo: ;-)
-	 */
+	al_dictionary_remove_and_free_all(storage, &free, &gnunet_search_storage_string_arraylist_free);
+	al_dictionary_free(storage);
 }
 
 void gnunet_search_storage_key_value_add(char const *key, char const *value) {

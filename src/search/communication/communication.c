@@ -20,7 +20,8 @@
 
 static array_list_t *gnunet_search_server_communication_listeners;
 static queue_t *gnunet_search_communication_message_queue;
-static void (*request_notify_transmit_ready)(size_t size, void *cls, size_t (*)(void*, size_t, void*));
+static void (*request_notify_transmit_ready)(size_t size, void *cls, size_t (*)(void*, size_t, void*),
+		struct GNUNET_TIME_Relative);
 
 struct gnunet_search_server_communication_queued_message {
 	void *buffer;
@@ -52,14 +53,22 @@ static size_t gnunet_search_server_communication_transmit_ready(void *cls, size_
 
 	memcpy(buffer + sizeof(struct GNUNET_MessageHeader), msg->buffer, msg->size);
 
-	free(msg->buffer);
-	free(msg);
+//	free(msg->buffer);
+//	free(msg);
 
-	//printf("End of transmit_ready()...\n");
+//printf("End of transmit_ready()...\n");
 
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_server_communication_transmit_next, NULL);
 
 	return msg_size;
+}
+
+static void gnunet_search_commuinication_queued_message_free_task(void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	struct gnunet_search_server_communication_queued_message *msg =
+			(struct gnunet_search_server_communication_queued_message*) cls;
+	free(msg->buffer);
+	free(msg);
 }
 
 static void gnunet_search_server_communication_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
@@ -70,13 +79,36 @@ static void gnunet_search_server_communication_transmit_next(void *cls, const st
 			(struct gnunet_search_server_communication_queued_message*) queue_dequeue(
 					gnunet_search_communication_message_queue);
 
-	request_notify_transmit_ready(sizeof(struct GNUNET_MessageHeader) + msg->size, msg, &gnunet_search_server_communication_transmit_ready);
+	struct GNUNET_TIME_Relative max_delay = GNUNET_TIME_relative_get_minute_();
+	struct GNUNET_TIME_Relative gct = GNUNET_TIME_relative_add(max_delay, GNUNET_TIME_relative_get_second_());
+
+	request_notify_transmit_ready(sizeof(struct GNUNET_MessageHeader) + msg->size, msg,
+			&gnunet_search_server_communication_transmit_ready, max_delay);
+
+	/*
+	 * Todo: Save and free...
+	 */
+	GNUNET_SCHEDULER_add_delayed(gct, &gnunet_search_commuinication_queued_message_free_task, msg);
 }
 
-void gnunet_search_communication_init(void (*request_notify_transmit_ready_handler)(size_t size, void *cls, size_t (*)(void*, size_t, void*))) {
+void gnunet_search_communication_init(
+		void (*request_notify_transmit_ready_handler)(size_t size, void *cls, size_t (*)(void*, size_t, void*),
+				struct GNUNET_TIME_Relative)) {
 	gnunet_search_server_communication_listeners = array_list_construct();
 	gnunet_search_communication_message_queue = queue_construct();
 	request_notify_transmit_ready = request_notify_transmit_ready_handler;
+}
+
+void gnunet_search_communication_free() {
+	while(queue_get_length(gnunet_search_communication_message_queue)) {
+		struct gnunet_search_server_communication_queued_message *msg =
+				(struct gnunet_search_server_communication_queued_message *) queue_dequeue(
+						gnunet_search_communication_message_queue);
+		free(msg->buffer);
+		free(msg);
+	}
+	queue_free(gnunet_search_communication_message_queue);
+	array_list_free(gnunet_search_server_communication_listeners);
 }
 
 char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnunet_message) {
@@ -189,8 +221,4 @@ void gnunet_search_communication_transmit(void *data, size_t size) {
 	}
 
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_server_communication_transmit_next, NULL);
-}
-
-void gnunet_search_communication_free() {
-	queue_free(gnunet_search_communication_message_queue);
 }
