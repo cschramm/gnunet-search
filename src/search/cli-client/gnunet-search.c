@@ -80,8 +80,8 @@ static void gnunet_search_transmit_urls(const char *file) {
 	char **urls = NULL;
 	size_t urls_length = gnunet_search_util_urls_read(&urls, file);
 
-	void *serialized;
-	size_t serialized_size = gnunet_search_util_serialize(urls, urls_length, &serialized);
+	char *serialized;
+	size_t serialized_size = gnunet_search_util_serialize((char const * const *)urls, urls_length, &serialized);
 
 	struct search_command *cmd = (struct search_command*) serialized;
 
@@ -116,6 +116,10 @@ static void gnunet_search_transmit_keyword(const char *keyword) {
 	free(serialized);
 }
 
+static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	exit(0);
+}
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -125,6 +129,8 @@ static void gnunet_search_transmit_keyword(const char *keyword) {
  * @param cfg configuration
  */
 static void gnunet_search_run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
+
 	ret = 0;
 
 //	printf("action: %s\n", action_string);

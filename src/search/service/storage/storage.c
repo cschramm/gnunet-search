@@ -5,6 +5,7 @@
  *      Author: jucs
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -66,12 +67,12 @@ void gnunet_search_storage_key_value_add(char const *key, char const *value) {
 
 		al_dictionary_insert(storage, key_copy, known_values);
 	} else {
-		known_values = (array_list_t const*) from_storage;
+		known_values = (array_list_t *) from_storage;
 
 		size_t known_values_length = array_list_get_length(known_values);
 		for(long int i = 0; i < known_values_length; ++i) {
 			const char *element;
-			array_list_get(known_values, &element, i);
+			array_list_get(known_values, (void const **)&element, i);
 			if(!strcmp(element, value))
 				return;
 		}
@@ -101,7 +102,7 @@ size_t gnunet_search_storage_value_serialize(char **buffer, array_list_t *values
 	size_t values_length = array_list_get_length(values);
 	for(long int i = 0; i < values_length; ++i) {
 		char *next;
-		array_list_get(values, &next, i);
+		array_list_get(values, (void const **)&next, i);
 		size_t next_size = strlen(next) + 1;
 		fflush(memstream);
 		if(buffer_size + next_size <= maximal_size)

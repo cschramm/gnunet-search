@@ -14,6 +14,7 @@
 
 #include "../util/service-util.h"
 #include "../storage/storage.h"
+#include "../dht/dht.h"
 
 void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void const *data, size_t size) {
 	size_t position = prefix_length;

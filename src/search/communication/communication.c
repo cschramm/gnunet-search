@@ -22,7 +22,7 @@ static array_list_t *gnunet_search_server_communication_listeners;
 static queue_t *gnunet_search_communication_message_queue;
 static void (*request_notify_transmit_ready)(size_t size, void *cls, size_t (*)(void*, size_t, void*));
 
-static struct gnunet_search_server_communication_queued_message {
+struct gnunet_search_server_communication_queued_message {
 	void *buffer;
 	size_t size;
 };
@@ -38,7 +38,6 @@ static void gnunet_search_server_communication_listeners_notify(size_t size, voi
 static void gnunet_search_server_communication_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 static size_t gnunet_search_server_communication_transmit_ready(void *cls, size_t size, void *buffer) {
-
 	size_t msg_size = sizeof(struct GNUNET_MessageHeader);
 
 	struct gnunet_search_server_communication_queued_message *msg =
@@ -151,8 +150,7 @@ void gnunet_search_communication_listener_add(void (*listener)(size_t, void*)) {
 void gnunet_search_communication_transmit(void *data, size_t size) {
 	size_t maximal_payload_size = GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct message_header)
 			- sizeof(struct GNUNET_MessageHeader);
-	maximal_payload_size = 5;
-
+//	maximal_payload_size = 5;
 
 	char fragmented = 0;
 	size_t data_left = size;

@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
@@ -46,7 +47,7 @@
 
 #include <collections/arraylist/arraylist.h>
 
-static void search_process_flooding(char const *keyword) {
+static void gnunet_search_process_flooding(char const *keyword) {
 	gnunet_search_flooding_peer_request_flood(keyword, strlen(keyword) + 1);
 }
 
@@ -59,14 +60,14 @@ static void search_process_flooding(char const *keyword) {
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static void gnunet_service_search_client_message_handle(size_t size, void *buffer) {
+static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 	GNUNET_assert(size >= sizeof(struct search_command));
 
 	struct search_command *cmd = (struct search_command*) buffer;
 
 	GNUNET_assert(size == cmd->size);
 
-	printf("Command: action = %u, size = %zu\n", cmd->action, cmd->size);
+	printf("Command: action = %u, size = %" PRIu64 "\n", cmd->action, cmd->size);
 
 	if(cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
 		char *keyword;
@@ -75,7 +76,7 @@ static void gnunet_service_search_client_message_handle(size_t size, void *buffe
 		printf("Searching keyword: %s...\n", keyword);
 
 //		search_process(keyword);
-		search_process_flooding(keyword);
+		gnunet_search_process_flooding(keyword);
 
 		free(keyword);
 	}
@@ -102,7 +103,7 @@ static void gnunet_service_search_client_message_handle(size_t size, void *buffe
  * @param tc unused
  */
 static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
-	printf("shutdown_task()\n");
+	exit(0);
 }
 
 /**
@@ -121,7 +122,7 @@ int core_inbound_notify(void *cls, const struct GNUNET_PeerIdentity *other, cons
 	return GNUNET_OK;
 }
 
-void message_notification_handler(struct GNUNET_PeerIdentity *sender,
+void gnunet_search_message_notification_handler(struct GNUNET_PeerIdentity const *sender,
 		struct gnunet_search_flooding_message *flooding_message, size_t flooding_message_size) {
 	switch(flooding_message->type) {
 		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST: {
@@ -161,9 +162,11 @@ void message_notification_handler(struct GNUNET_PeerIdentity *sender,
  * @param server the initialized server
  * @param c configuration to use
  */
-static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c) {
+static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c) {
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
+
 	gnunet_search_client_communication_init();
-	gnunet_search_communication_listener_add(&gnunet_service_search_client_message_handle);
+	gnunet_search_communication_listener_add(&gnunet_search_client_message_handle);
 
 	static const struct GNUNET_SERVER_MessageHandler handlers[] = { {
 			&gnunet_search_client_communication_message_handle, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL, NULL, 0,
@@ -186,7 +189,7 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
 			NULL/*&core_inbound_notify*/, 0, NULL, 0, core_handlers);
 
 	gnunet_search_flooding_init();
-	gnunet_search_handlers_set(&message_notification_handler);
+	gnunet_search_handlers_set(&gnunet_search_message_notification_handler);
 
 	gnunet_search_storage_init();
 }
@@ -199,7 +202,7 @@ static void run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNU
  * @return 0 ok, 1 on error
  */
 int main(int argc, char * const *argv) {
-	return (GNUNET_OK == GNUNET_SERVICE_run(argc, argv, "search", GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+	return (GNUNET_OK == GNUNET_SERVICE_run(argc, argv, "search", GNUNET_SERVICE_OPTION_NONE, &gnunet_search_service_run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-ext.c */

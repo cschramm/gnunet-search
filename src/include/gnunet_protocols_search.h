@@ -43,9 +43,9 @@ extern "C"
 #define GNUNET_MESSAGE_SEARCH_FLAG_FRAGMENTED (1 << 0)
 #define GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT (1 << 1)
 
-struct message_header {
+struct __attribute__((__packed__)) message_header {
 	uint8_t flags;
-} __attribute__((packed));
+};
 
 #define GNUNET_MESSAGE_TYPE_SEARCH 0x4242
 #define GNUNET_MESSAGE_TYPE_SEARCH_FLOODING 0x2424
@@ -53,18 +53,18 @@ struct message_header {
 #define GNUNET_SEARCH_ACTION_SEARCH 0x00
 #define GNUNET_SEARCH_ACTION_ADD 0x01
 
-struct search_command {
+struct __attribute__((__packed__)) search_command {
 	uint8_t action;
 	uint64_t size;
-} __attribute__((packed));
+};
 
 #define GNUNET_SEARCH_RESPONSE_TYPE_RESULT 0x00
 #define GNUNET_SEARCH_RESPONSE_TYPE_DONE 0x01
 
-struct search_response {
+struct __attribute__((__packed__)) search_response {
 	uint8_t type;
 	uint64_t size;
-} __attribute__((packed));
+};
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
