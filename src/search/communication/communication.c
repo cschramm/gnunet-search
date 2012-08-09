@@ -27,11 +27,11 @@ static struct gnunet_search_server_communication_queued_message {
 	size_t size;
 };
 
-static void gnunet_search_server_communication_listeners_notify(size_t size, void *buffer) {
+static void gnunet_search_server_communication_listeners_notify(size_t size, void *buffer, void *cls) {
 	for(long int i = 0; i < array_list_get_length(gnunet_search_server_communication_listeners); ++i) {
-		void (*listener)(size_t, void*);
+		void (*listener)(size_t, void*, void*);
 		array_list_get(gnunet_search_server_communication_listeners, (const void**) &listener, i);
-		listener(size, buffer);
+		listener(size, buffer, cls);
 	}
 }
 
@@ -80,7 +80,8 @@ void gnunet_search_communication_init(void (*request_notify_transmit_ready_handl
 	request_notify_transmit_ready = request_notify_transmit_ready_handler;
 }
 
-char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnunet_message) {
+
+char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnunet_message, void *cls) {
 	struct message_header *msg_header = (struct message_header*) (gnunet_message + 1);
 
 	size_t gnunet_message_size = ntohs(gnunet_message->size);
@@ -120,7 +121,7 @@ char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnun
 			}
 			fwrite(msg_header + 1, 1, payload_size, memstream);
 			fclose(memstream);
-			gnunet_search_server_communication_listeners_notify(total_size, buffer);
+			gnunet_search_server_communication_listeners_notify(total_size, buffer, cls);
 //			free(header);
 			free(buffer);
 			return 0;
@@ -138,13 +139,13 @@ char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnun
 //				(struct gnunet_search_server_communication_header*) malloc(
 //						sizeof(struct gnunet_search_server_communication_header));
 //		header->size = response->size;
-		gnunet_search_server_communication_listeners_notify(payload_size, msg_header + 1);
+		gnunet_search_server_communication_listeners_notify(payload_size, msg_header + 1, cls);
 		return 0;
 //		free(header);
 	}
 }
 
-void gnunet_search_communication_listener_add(void (*listener)(size_t, void*)) {
+void gnunet_search_communication_listener_add(void (*listener)(size_t, void*, void*)) {
 	array_list_insert(gnunet_search_server_communication_listeners, listener);
 }
 

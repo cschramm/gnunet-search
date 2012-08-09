@@ -59,7 +59,7 @@ static void search_process_flooding(char const *keyword) {
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static void gnunet_service_search_client_message_handle(size_t size, void *buffer) {
+static void gnunet_service_search_client_message_handle(size_t size, void *buffer, void *cls) {
 	GNUNET_assert(size >= sizeof(struct search_command));
 
 	struct search_command *cmd = (struct search_command*) buffer;

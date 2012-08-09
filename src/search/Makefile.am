@@ -38,9 +38,12 @@ gnunet_service_search_LDFLAGS = \
   $(GNUNET_LIBS)  $(WINFLAGS) -export-dynamic 
 
 gnunet_search_web_SOURCES = \
-  web-client/gnunet-search-web.c
+  web-client/gnunet-search-web.c \
+  client/server-communication/server-communication.c \
+  communication/communication.c
 gnunet_search_web_LDADD = \
   -lmicrohttpd \
+  -lcollections \
   $(INTLLIBS)
 gnunet_search_web_LDFLAGS = \
   $(GNUNET_LIBS) $(WINFLAGS) -export-dynamic

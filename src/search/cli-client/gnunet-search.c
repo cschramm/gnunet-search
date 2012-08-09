@@ -46,7 +46,7 @@ static char *action_string;
 static char *file_string;
 static char *keyword_string;
 
-static void gnunet_search_receive_handler(size_t size, void *buffer) {
+static void gnunet_search_receive_handler(size_t size, void *buffer, void *cls) {
 	GNUNET_assert(size >= sizeof(struct search_response));
 
 	struct search_response *response = (struct search_response*)buffer;
@@ -71,7 +71,7 @@ static void gnunet_search_receive_handler(size_t size, void *buffer) {
 
 			free(result);
 
-			gnunet_search_server_communication_receive();
+			gnunet_search_server_communication_receive(0);
 		}
 	}
 }
@@ -132,7 +132,7 @@ static void gnunet_search_run(void *cls, char * const *args, const char *cfgfile
 
 	gnunet_search_server_communication_init(cfg);
 	gnunet_search_communication_listener_add(&gnunet_search_receive_handler);
-	gnunet_search_server_communication_receive();
+	gnunet_search_server_communication_receive(0);
 
 	if(!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
 		gnunet_search_transmit_keyword(keyword_string);

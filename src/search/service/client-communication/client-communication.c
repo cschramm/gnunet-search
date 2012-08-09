@@ -23,7 +23,7 @@ void gnunet_search_client_communication_message_handle(void *cls, struct GNUNET_
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 	GNUNET_SERVER_client_keep(client);
 	_client = client;
-	gnunet_search_communication_receive(gnunet_message);
+	gnunet_search_communication_receive(gnunet_message, cls);
 }
 
 static void gnunet_search_client_communication_request_notify_transmit_ready(size_t size, void *cls,

@@ -6,7 +6,7 @@
 		<link rel="stylesheet" href="style.css" type="text/css"/>
 		<script type="text/javascript" src="result_loader.js"></script>
 	</head>
-	<body onload="load_results('<?cs var:js_escape(q) ?>');">
+	<body onload="load_results('<?cs var:js_escape(qid) ?>');">
 		<header>
 			<img src="logo.png" alt="GNUnet"/>
 			GNUnet Search | <?cs var:html_escape(hostname) ?>
@@ -14,9 +14,6 @@
 		<form action="" method="GET">
 			<input type="text" name="q" value="<?cs var:html_escape(q) ?>"/>
 		</form>
-		<?cs if:error ?>
-			<div id="error">Could not connect to the gnunet-search service!</div>
-		<?cs /if ?>
 		<ul></ul>
 	</body>
 </html>
