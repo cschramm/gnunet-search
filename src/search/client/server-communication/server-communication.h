@@ -10,17 +10,8 @@
 
 #include <stdint.h>
 
-//struct gnunet_search_server_communication_header {
-//	uint8_t type;
-//	size_t size;
-//};
-
-void transmit(size_t size, void *data);
-void add_listener(void (*handler)(size_t, void*));
 extern void gnunet_search_server_communication_receive();
 extern void gnunet_search_server_communication_init(const struct GNUNET_CONFIGURATION_Handle *cfg);
 extern void gnunet_search_server_communication_free();
-extern void transmit_urls(const char *file);
-extern void transmit_keyword(const char *keyword);
 
 #endif /* SERVER_COMMUNICATION_C_ */

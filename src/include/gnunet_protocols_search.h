@@ -35,19 +35,20 @@ extern "C"
 #endif
 #endif
 
-
+#include <stdint.h>
 
 /**
  * SEARCH messages
  */
 #define GNUNET_MESSAGE_SEARCH_FLAG_FRAGMENTED (1 << 0)
-#define GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT (1 << 2)
+#define GNUNET_MESSAGE_SEARCH_FLAG_LAST_FRAGMENT (1 << 1)
 
 struct message_header {
 	uint8_t flags;
 } __attribute__((packed));
 
 #define GNUNET_MESSAGE_TYPE_SEARCH 0x4242
+#define GNUNET_MESSAGE_TYPE_SEARCH_FLOODING 0x2424
 
 #define GNUNET_SEARCH_ACTION_SEARCH 0x00
 #define GNUNET_SEARCH_ACTION_ADD 0x01

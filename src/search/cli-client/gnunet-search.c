@@ -19,9 +19,9 @@
  */
 
 /**
- * @file search/gnunet-search.c
- * @brief ext tool
- * @author 
+ * @file cli-client/gnunet-search.c
+ * @brief ...
+ * @author Julian Kranz
  */
 
 #define _GNU_SOURCE
@@ -33,8 +33,9 @@
 #include <gnunet/gnunet_client_lib.h>
 #include "gnunet_search_service.h"
 #include "gnunet_protocols_search.h"
-#include "server-communication/server-communication.h"
-#include "util/util.h"
+#include "../client/server-communication/server-communication.h"
+#include "../communication/communication.h"
+#include "util/client-util.h"
 
 #define GNUNET_SEARCH_ACTION_STRING_SEARCH "search"
 #define GNUNET_SEARCH_ACTION_STRING_ADD "add"
@@ -45,57 +46,42 @@ static char *action_string;
 static char *file_string;
 static char *keyword_string;
 
-static void receive_handler(size_t size, void *buffer) {
+static void gnunet_search_receive_handler(size_t size, void *buffer) {
+	GNUNET_assert(size >= sizeof(struct search_response));
+
 	struct search_response *response = (struct search_response*)buffer;
-	/*
-	 * Security?
-	 */
+
+	GNUNET_assert(size == response->size);
+
 	switch(response->type) {
 		case GNUNET_SEARCH_RESPONSE_TYPE_DONE: {
 			printf("Server: Done\n");
 			break;
 		}
 		case GNUNET_SEARCH_RESPONSE_TYPE_RESULT: {
-			/*
-			 * Todo: Siehe nächste Zeile
-			 */
-			//GNUNET_assert(header->size >= sizeof(struct search_response));
+			size_t result_length = size - sizeof(struct search_response);
 
-			/*
-			 * Todo: broken, fix
-			 */
-			char *result = (char*) malloc(size + 1);
-			memcpy(result, buffer, size);
-			result[size] = 0;
+			char *result = (char*) malloc(result_length + 1);
+			memcpy(result, response + 1, result_length);
+			result[result_length] = 0;
 
-			printf("Server result: %s\n", result);
+			gnunet_search_util_replace(result, result_length, 0, '\n');
+
+			printf("Server result: \n%s-----------\n", result);
 
 			free(result);
+
+			gnunet_search_server_communication_receive();
 		}
 	}
 }
 
-void transmit_urls(const char *file) {
-//	printf("transmit_urls()\n");
-
+static void gnunet_search_transmit_urls(const char *file) {
 	char **urls = NULL;
-	size_t urls_length = urls_read(&urls, file);
+	size_t urls_length = gnunet_search_util_urls_read(&urls, file);
 
 	void *serialized;
-	size_t serialized_size;
-	FILE *memstream = open_memstream((char**) &serialized, &serialized_size);
-
-	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
-
-	for(size_t url_index = 0; url_index < urls_length; ++url_index) {
-		size_t url_length = strlen(urls[url_index]);
-		fwrite(urls[url_index], 1, url_length, memstream);
-		fputc(0, memstream);
-	}
-
-	fclose(memstream);
-
-	printf("blah %zu\n", serialized_size);
+	size_t serialized_size = gnunet_search_util_serialize(urls, urls_length, &serialized);
 
 	struct search_command *cmd = (struct search_command*) serialized;
 
@@ -104,10 +90,30 @@ void transmit_urls(const char *file) {
 
 	for(int i = 0; i < urls_length; ++i)
 		free(urls[i]);
-
 	free(urls);
 
-	transmit(serialized_size, serialized);
+	gnunet_search_communication_transmit(serialized, serialized_size);
+
+	free(serialized);
+}
+
+static void gnunet_search_transmit_keyword(const char *keyword) {
+	void *serialized;
+	size_t serialized_size;
+	FILE *memstream = open_memstream((char**) &serialized, &serialized_size);
+
+	fseek(memstream, sizeof(struct search_command), SEEK_CUR);
+	fwrite(keyword, 1, strlen(keyword) + 1, memstream);
+
+	fclose(memstream);
+
+	struct search_command *cmd = (struct search_command*) serialized;
+	cmd->action = GNUNET_SEARCH_ACTION_SEARCH;
+	cmd->size = serialized_size;
+
+	gnunet_search_communication_transmit(serialized, serialized_size);
+
+	free(serialized);
 }
 
 /**
@@ -118,28 +124,22 @@ void transmit_urls(const char *file) {
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
-static void run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
+static void gnunet_search_run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
 	ret = 0;
 
 //	printf("action: %s\n", action_string);
 //	printf("file: %s\n", file_string);
 
 	gnunet_search_server_communication_init(cfg);
-	add_listener(&receive_handler);
+	gnunet_search_communication_listener_add(&gnunet_search_receive_handler);
 	gnunet_search_server_communication_receive();
 
 	if(!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_SEARCH))
-		transmit_keyword(keyword_string);
+		gnunet_search_transmit_keyword(keyword_string);
 	else if(!strcmp(action_string, GNUNET_SEARCH_ACTION_STRING_ADD))
-		transmit_urls(file_string);
+		gnunet_search_transmit_urls(file_string);
 
 }
-
-//static int cmdline_processor(
-//		struct GNUNET_GETOPT_CommandLineProcessorContext * ctx, void *scls,
-//		const char *option, const char *value) {
-//	printf("option: %s, value: %s", option, value);
-//}
 
 /**
  * The main function to ext.
@@ -149,34 +149,13 @@ static void run(void *cls, char * const *args, const char *cfgfile, const struct
  * @return 0 ok, 1 on error
  */
 int main(int argc, char * const *argv) {
-//	char str[5];
-//	for (int i = 0; i < 5; ++i)
-//		str[i] = 42;
-//
-//	sprintf(str, "%s", "tut");
-//
-//	for (int i = 0; i < 5; ++i)
-//		printf("%d\n", str[i]);
-//
-//	char *str;
-//	size_t size;
-//
-//	FILE *stream = open_memstream(&str, &size);
-//
-//	fprintf(stream, "%s\\0", "tut");
-//
-//	fclose(stream);
-//
-//	for (int i = 0; i < size; ++i)
-//		printf("%d\n", str[i]);
-
 	static const struct GNUNET_GETOPT_CommandLineOption options[] = { { 'a', "action", "search|add",
 			gettext_noop("search for keyword or add list of urls"), 1, &GNUNET_GETOPT_set_string, &action_string }, {
 			'u', "urls", "path/to/file", gettext_noop("specify the file containing urls"), 1, &GNUNET_GETOPT_set_string,
 			&file_string }, { 'k', "keyword", "keyword", gettext_noop("specify the keyword to search for"), 1,
 			&GNUNET_GETOPT_set_string, &keyword_string }, GNUNET_GETOPT_OPTION_END };
 	return (GNUNET_OK
-			== GNUNET_PROGRAM_run(argc, argv, "gnunet-search [options [value]]", gettext_noop("search"), options, &run,
+			== GNUNET_PROGRAM_run(argc, argv, "gnunet-search [options [value]]", gettext_noop("search"), options, &gnunet_search_run,
 					NULL)) ? ret : 1;
 }
 
