@@ -8,6 +8,9 @@
 #ifndef CLIENT_COMMUNICATION_H_
 #define CLIENT_COMMUNICATION_H_
 
+#include <gnunet/platform.h>
+#include <gnunet/gnunet_util_lib.h>
+
 extern void gnunet_search_client_communication_message_handle(void *cls, struct GNUNET_SERVER_Client *client,
 		const struct GNUNET_MessageHeader *message);
 extern void gnunet_search_client_communication_init();

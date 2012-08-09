@@ -10,11 +10,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
-#include <gnunet/gnunet_dht_service.h>
 #include "gnunet_protocols_search.h"
 #include "../../communication/communication.h"
+#include "client-communication.h"
 
 static struct GNUNET_SERVER_Client *_client;
 

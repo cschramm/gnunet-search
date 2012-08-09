@@ -9,4 +9,4 @@
 /**
  * Our configuration.
  */
-struct GNUNET_CONFIGURATION_Handle *gnunet_search_globals_cfg;
+struct GNUNET_CONFIGURATION_Handle const *gnunet_search_globals_cfg;

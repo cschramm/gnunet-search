@@ -11,8 +11,12 @@
 #include <string.h>
 
 #include "gnunet_protocols_search.h"
+#include "../client-communication/client-communication.h"
+#include "../storage/storage.h"
 #include "../globals/globals.h"
 #include "flooding.h"
+
+#include <collections/arraylist/arraylist.h>
 
 struct gnunet_search_flooding_data_flood_parameters {
 	struct GNUNET_PeerIdentity const *sender;
@@ -120,6 +124,43 @@ static int gnunet_search_flooding_core_inbound_notify(void *cls, const struct GN
 	return GNUNET_OK;
 }
 
+static void gnunet_search_flooding_message_notification_handler(struct GNUNET_PeerIdentity const *sender,
+		struct gnunet_search_flooding_message *flooding_message, size_t flooding_message_size) {
+	switch(flooding_message->type) {
+		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST: {
+			/*
+			 * Todo: Security!!! (Länge muss gepüft werden)
+			 */
+			char *key = (char*)(flooding_message + 1);
+//			printf("a: %s...\n", key);
+			array_list_t *values = gnunet_search_storage_values_get(key);
+			if(values) {
+				char *values_serialized;
+				size_t values_serialized_size = gnunet_search_storage_value_serialize(&values_serialized, values,
+						GNUNET_SEARCH_FLOODING_MESSAGE_MAXIMAL_PAYLOAD_SIZE);
+
+//				printf("b...\n");
+
+				gnunet_search_flooding_peer_response_flood(values_serialized, values_serialized_size,
+						flooding_message->flow_id);
+
+				free(values_serialized);
+			}
+			break;
+		}
+		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE: {
+			void *data = flooding_message + 1;
+			size_t data_size = flooding_message_size - sizeof(struct gnunet_search_flooding_message);
+			gnunet_search_client_communication_send_result(data, data_size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT);
+			break;
+		}
+	}
+}
+
+static void gnunet_search_flooding_handlers_set(void (*message_notification_handler)(struct GNUNET_PeerIdentity const *, struct gnunet_search_flooding_message *, size_t)) {
+	_message_notification_handler = message_notification_handler;
+}
+
 void gnunet_search_flooding_init() {
 	gnunet_search_flooding_routing_table = (struct gnunet_search_flooding_routing_entry *) malloc(
 			sizeof(struct gnunet_search_flooding_routing_entry) * GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE);
@@ -133,6 +174,8 @@ void gnunet_search_flooding_init() {
 
 	gnunet_search_dht_core_handle = GNUNET_CORE_connect(gnunet_search_globals_cfg, 42, NULL, NULL, NULL, NULL,
 			NULL/*&gnunet_search_flooding_core_inbound_notify*/, 0, NULL, 0, core_handlers);
+
+	gnunet_search_flooding_handlers_set(&gnunet_search_flooding_message_notification_handler);
 }
 
 void gnunet_search_flooding_free() {
@@ -238,8 +281,4 @@ void gnunet_search_flooding_peer_request_flood(void const *data, size_t data_siz
 
 void gnunet_search_flooding_peer_response_flood(void const *data, size_t data_size, uint64_t flow_id) {
 	gnunet_search_flooding_peer_data_flood(data, data_size, GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE, flow_id);
-}
-
-void gnunet_search_handlers_set(void (*message_notification_handler)(struct GNUNET_PeerIdentity const *, struct gnunet_search_flooding_message *, size_t)) {
-	_message_notification_handler = message_notification_handler;
 }
