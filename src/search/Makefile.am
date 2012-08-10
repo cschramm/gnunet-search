@@ -29,6 +29,7 @@ gnunet_service_search_SOURCES = \
   service/dht/dht.c \
   service/flooding/flooding.c \
   service/storage/storage.c \
+  service/normalization/normalization.c \
   service/globals/globals.c
 gnunet_service_search_LDADD = \
   -lgnunetutil -lgnunetcore -lgnunetdht\

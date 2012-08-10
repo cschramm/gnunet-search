@@ -51,8 +51,6 @@ static void gnunet_search_receive_handler(size_t size, void *buffer) {
 
 	struct search_response *response = (struct search_response*)buffer;
 
-	printf("id: %u\n", response->id);
-
 	GNUNET_assert(size == response->size);
 
 	switch(response->type) {

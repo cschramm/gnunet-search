@@ -17,6 +17,7 @@
 #include "../util/service-util.h"
 #include "../flooding/flooding.h"
 #include "../url-processor/url-processor.h"
+#include "../normalization/normalization.h"
 #include "client-communication.h"
 
 static struct GNUNET_SERVER_Client *_client;
@@ -68,6 +69,8 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 	if(cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
 		char *keyword;
 		gnunet_search_util_cmd_keyword_get(&keyword, cmd);
+
+		gnunet_search_normalization_keyword_normalize(keyword);
 
 		printf("Searching keyword: %s...\n", keyword);
 
