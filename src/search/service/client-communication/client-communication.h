@@ -17,6 +17,6 @@ extern void gnunet_search_client_communication_init();
 extern void gnunet_search_client_communication_free();
 extern void gnunet_search_client_communication_send_result(void const *data, size_t size, char type, uint16_t id);
 extern uint16_t gnunet_search_client_communication_by_flow_id_request_id_get(uint64_t flow_id);
-extern void void gnunet_search_client_communication_flush();
+extern void gnunet_search_client_communication_flush();
 
 #endif /* CLIENT_COMMUNICATION_H_ */

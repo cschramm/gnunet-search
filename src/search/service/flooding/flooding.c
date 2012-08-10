@@ -35,7 +35,7 @@ static size_t gnunet_search_flooding_routing_table_index;
 
 static struct GNUNET_CORE_Handle *gnunet_search_dht_core_handle;
 
-static void (*gnunet_search_flooding_message_notification_handler)(struct GNUNET_PeerIdentity const *sender,
+static void (*_gnunet_search_flooding_message_notification_handler)(struct GNUNET_PeerIdentity const *sender,
 		struct gnunet_search_flooding_message *, size_t);
 
 static size_t gnunet_search_flooding_notify_transmit_ready(void *cls, size_t size, void *buffer) {
@@ -167,7 +167,7 @@ static void gnunet_search_flooding_message_notification_handler(struct GNUNET_Pe
 static void gnunet_search_flooding_handlers_set(
 		void (*message_notification_handler)(struct GNUNET_PeerIdentity const *,
 				struct gnunet_search_flooding_message *, size_t)) {
-	gnunet_search_flooding_message_notification_handler = message_notification_handler;
+	_gnunet_search_flooding_message_notification_handler = message_notification_handler;
 }
 
 void gnunet_search_flooding_init() {
@@ -175,7 +175,7 @@ void gnunet_search_flooding_init() {
 			sizeof(struct gnunet_search_flooding_routing_entry) * GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE);
 	gnunet_search_flooding_routing_table_length = 0;
 	gnunet_search_flooding_routing_table_index = 0;
-	gnunet_search_flooding_message_notification_handler = NULL;
+	_gnunet_search_flooding_message_notification_handler = NULL;
 
 	static struct GNUNET_CORE_MessageHandler core_handlers[] = { { &gnunet_search_flooding_core_inbound_notify,
 			GNUNET_MESSAGE_TYPE_SEARCH_FLOODING, 0 }, { NULL, 0, 0 } };
@@ -223,8 +223,8 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 			if(gnunet_search_flooding_routing_table_length < GNUNET_SEARCH_FLOODING_ROUTING_TABLE_SIZE)
 				gnunet_search_flooding_routing_table_length++;
 
-			if(gnunet_search_flooding_message_notification_handler)
-				gnunet_search_flooding_message_notification_handler(sender, flooding_message, flooding_message_size);
+			if(_gnunet_search_flooding_message_notification_handler)
+				_gnunet_search_flooding_message_notification_handler(sender, flooding_message, flooding_message_size);
 
 			struct gnunet_search_flooding_message *output_flooding_message =
 					(struct gnunet_search_flooding_message *) malloc(flooding_message_size);
@@ -245,8 +245,8 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 			struct GNUNET_PeerIdentity const *next_hop = gnunet_search_flooding_routing_table[next_hop_index].next_hop;
 			if(!next_hop) {
 				printf("Yippie, this is response to my request :-).\n");
-				if(gnunet_search_flooding_message_notification_handler)
-					gnunet_search_flooding_message_notification_handler(sender, flooding_message,
+				if(_gnunet_search_flooding_message_notification_handler)
+					_gnunet_search_flooding_message_notification_handler(sender, flooding_message,
 							flooding_message_size);
 			} else {
 				struct gnunet_search_flooding_message *output_flooding_message =
