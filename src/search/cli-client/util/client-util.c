@@ -27,6 +27,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <gnunet/platform.h>
+#include <gnunet/gnunet_util_lib.h>
+
 #include "gnunet_protocols_search.h"
 
 /**
@@ -49,11 +52,11 @@ size_t gnunet_search_util_urls_read(char ***urls, const char *file) {
 
 	size_t urls_size = 32;
 	size_t urls_length = 0;
-	*urls = (char**) malloc(sizeof(char*) * urls_size);
+	*urls = (char**) GNUNET_malloc(sizeof(char*) * urls_size);
 
 	size_t line_size = 64;
 	size_t line_length = 0;
-	char *line = (char*) malloc(line_size);
+	char *line = (char*) GNUNET_malloc(line_size);
 
 	int eof;
 	do {
@@ -79,7 +82,7 @@ size_t gnunet_search_util_urls_read(char ***urls, const char *file) {
 				urls_size <<= 1;
 				*urls = (char**) realloc(*urls, urls_size);
 			}
-			(*urls)[urls_length] = (char*) malloc(line_length);
+			(*urls)[urls_length] = (char*) GNUNET_malloc(line_length);
 			memcpy(*(*urls + urls_length), line, line_length);
 			urls_length++;
 
@@ -92,7 +95,7 @@ size_t gnunet_search_util_urls_read(char ***urls, const char *file) {
 //		free(line);
 	} while(!eof);
 
-	free(line);
+	GNUNET_free(line);
 
 	fclose(fh);
 

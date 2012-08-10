@@ -11,6 +11,9 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include <gnunet/platform.h>
+#include <gnunet/gnunet_util_lib.h>
+
 #include "gnunet_protocols_search.h"
 #include "../../communication/communication.h"
 #include "../dht/dht.h"
@@ -84,7 +87,7 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 //		search_process(keyword);
 		gnunet_search_client_communication_flooding_process(keyword, flow_id);
 
-		free(keyword);
+		GNUNET_free(keyword);
 	}
 	if(cmd->action == GNUNET_SEARCH_ACTION_ADD) {
 		char **urls;
@@ -95,8 +98,8 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 		gnunet_search_client_communication_send_result(NULL, 0, GNUNET_SEARCH_RESPONSE_TYPE_DONE, cmd->id);
 
 		for(size_t i = 0; i < urls_length; ++i)
-			free(urls[i]);
-		free(urls);
+			GNUNET_free(urls[i]);
+		GNUNET_free(urls);
 	}
 }
 
@@ -114,7 +117,7 @@ void gnunet_search_client_communication_message_handle(void *cls, struct GNUNET_
 }
 
 void gnunet_search_client_communication_init() {
-	gnunet_search_client_communication_mappings = (struct gnunet_search_client_communication_message_mapping*) malloc(
+	gnunet_search_client_communication_mappings = (struct gnunet_search_client_communication_message_mapping*) GNUNET_malloc(
 			sizeof(struct gnunet_search_client_communication_message_mapping)
 					* GNUNET_SEARCH_CLIENT_COMMUNICATION_MAPPINGS_SIZE);
 	gnunet_search_client_communication_mappings_index = 0;
@@ -124,7 +127,7 @@ void gnunet_search_client_communication_init() {
 }
 
 void gnunet_search_client_communication_free() {
-	free(gnunet_search_client_communication_mappings);
+	GNUNET_free(gnunet_search_client_communication_mappings);
 
 	gnunet_search_communication_free();
 }
@@ -138,7 +141,7 @@ void gnunet_search_client_communication_flush() {
 
 void gnunet_search_client_communication_send_result(void const *data, size_t size, char type, uint16_t id) {
 	size_t message_size = sizeof(struct search_response) + size;
-	void *message_buffer = malloc(message_size);
+	void *message_buffer = GNUNET_malloc(message_size);
 
 	struct search_response *response = (struct search_response*) message_buffer;
 	response->type = type;
@@ -149,7 +152,7 @@ void gnunet_search_client_communication_send_result(void const *data, size_t siz
 
 	gnunet_search_communication_transmit(message_buffer, message_size);
 
-	free(message_buffer);
+	GNUNET_free(message_buffer);
 }
 
 uint16_t gnunet_search_client_communication_by_flow_id_request_id_get(uint64_t flow_id) {

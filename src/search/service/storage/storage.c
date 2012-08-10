@@ -10,6 +10,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <gnunet/platform.h>
+#include <gnunet/gnunet_util_lib.h>
+
 #include "storage.h"
 #include "../globals/globals.h"
 
@@ -41,7 +44,7 @@ static void gnunet_search_storage_string_arraylist_free(void *arraylist) {
 	for (long int i = 0; i < _arraylist_size; ++i) {
 		void *value;
 		array_list_get(_arraylist, (void const **)&value, i);
-		free(value);
+		GNUNET_free(value);
 	}
 	array_list_free(_arraylist);
 }
@@ -67,10 +70,10 @@ void gnunet_search_storage_key_value_add(char const *key, char const *value) {
 	if(search_result) {
 		known_values = array_list_construct();
 
-		char *key_copy = (char*) malloc(key_length + 1);
+		char *key_copy = (char*) GNUNET_malloc(key_length + 1);
 		memcpy(key_copy, key, key_length + 1);
 
-		char *value_copy = (char*) malloc(value_length + 1);
+		char *value_copy = (char*) GNUNET_malloc(value_length + 1);
 		memcpy(value_copy, value, value_length + 1);
 
 		array_list_insert(known_values, value_copy);
@@ -87,7 +90,7 @@ void gnunet_search_storage_key_value_add(char const *key, char const *value) {
 				return;
 		}
 
-		char *value_copy = (char*) malloc(value_length + 1);
+		char *value_copy = (char*) GNUNET_malloc(value_length + 1);
 		memcpy(value_copy, value, value_length + 1);
 
 		array_list_insert(known_values, value_copy);

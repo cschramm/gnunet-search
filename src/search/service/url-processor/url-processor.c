@@ -9,7 +9,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
+#include <gnunet/platform.h>
+#include <gnunet/gnunet_util_lib.h>
 #include <crawl.h>
 
 #include "../util/service-util.h"
@@ -31,7 +34,7 @@ void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void
 		}
 
 	size_t url_length = size - position;
-	char *url = (char*) malloc(url_length + 1);
+	char *url = (char*) GNUNET_malloc(url_length + 1);
 	memcpy(url, data + position, url_length);
 	url[url_length] = 0;
 
@@ -50,20 +53,20 @@ void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void
 
 	for (size_t i = 0; i < urls_size; ++i) {
 //		printf("URL: %s\n", urls[i]);
-		free(urls[i]);
+		GNUNET_free(urls[i]);
 	}
 
 	for (size_t i = 0; i < keywords_size; ++i) {
 //		printf("Keyword: %s\n", keywords[i]);
 		gnunet_search_normalization_keyword_normalize(keywords[i]);
 		gnunet_search_storage_key_value_add(keywords[i], url);
-		free(keywords[i]);
+		GNUNET_free(keywords[i]);
 	}
 
-	free(urls);
-	free(keywords);
+	GNUNET_free(urls);
+	GNUNET_free(keywords);
 
-	free(url);
+	GNUNET_free(url);
 }
 
 size_t gnunet_search_url_processor_cmd_urls_get(char ***urls, struct search_command const *cmd) {
@@ -79,7 +82,7 @@ size_t gnunet_search_url_processor_cmd_urls_get(char ***urls, struct search_comm
 		 * Todo: Security...
 		 */
 		size_t url_length = strlen(urls_source);
-		char *url = (char*) malloc(url_length + 1);
+		char *url = (char*) GNUNET_malloc(url_length + 1);
 		memcpy(url, urls_source, url_length + 1);
 
 		fwrite(&url, sizeof(url), 1, url_stream);

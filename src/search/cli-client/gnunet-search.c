@@ -29,6 +29,7 @@
 #include <stdio.h>
 
 #include <gnunet/platform.h>
+#include <gnunet/gnunet_common.h>
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_client_lib.h>
 #include "gnunet_search_service.h"
@@ -64,7 +65,7 @@ static void gnunet_search_receive_handler(size_t size, void *buffer) {
 		case GNUNET_SEARCH_RESPONSE_TYPE_RESULT: {
 			size_t result_length = size - sizeof(struct search_response);
 
-			char *result = (char*) malloc(result_length + 1);
+			char *result = (char*) GNUNET_malloc(result_length + 1);
 			memcpy(result, response + 1, result_length);
 			result[result_length] = 0;
 
@@ -72,7 +73,7 @@ static void gnunet_search_receive_handler(size_t size, void *buffer) {
 
 			printf("Server result: \n%s-----------\n", result);
 
-			free(result);
+			GNUNET_free(result);
 
 			gnunet_search_server_communication_receive();
 		}
@@ -93,12 +94,12 @@ static void gnunet_search_transmit_urls(const char *file) {
 	cmd->id = 0;
 
 	for(int i = 0; i < urls_length; ++i)
-		free(urls[i]);
-	free(urls);
+		GNUNET_free(urls[i]);
+	GNUNET_free(urls);
 
 	gnunet_search_communication_transmit(serialized, serialized_size);
 
-	free(serialized);
+	GNUNET_free(serialized);
 }
 
 static void gnunet_search_transmit_keyword(const char *keyword) {
@@ -118,7 +119,7 @@ static void gnunet_search_transmit_keyword(const char *keyword) {
 
 	gnunet_search_communication_transmit(serialized, serialized_size);
 
-	free(serialized);
+	GNUNET_free(serialized);
 }
 
 static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
