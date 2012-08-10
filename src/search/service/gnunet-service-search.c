@@ -75,9 +75,7 @@ static void gnunet_search_shutdown_task(void *cls, const struct GNUNET_SCHEDULER
  * @param client identification of the client
  */
 static void gnunet_search_client_disconnect_handle(void *cls, struct GNUNET_SERVER_Client * client) {
-	/*
-	 * Todo: Flush message queue / fragmentation stuff...
-	 */
+	gnunet_search_client_communication_flush();
 }
 
 /**

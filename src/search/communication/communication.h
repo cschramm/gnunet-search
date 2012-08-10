@@ -18,5 +18,6 @@ extern char gnunet_search_communication_receive(const struct GNUNET_MessageHeade
 extern void gnunet_search_communication_transmit(void *data, size_t size);
 extern void gnunet_search_communication_listener_add(void (*listener)(size_t, void*));
 extern void gnunet_search_communication_free();
+extern void gnunet_search_communication_flush();
 
 #endif /* COMMUNICATION_H_ */

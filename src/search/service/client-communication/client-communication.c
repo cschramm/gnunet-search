@@ -129,6 +129,13 @@ void gnunet_search_client_communication_free() {
 	gnunet_search_communication_free();
 }
 
+void gnunet_search_client_communication_flush() {
+	gnunet_search_client_communication_mappings_length = 0;
+	gnunet_search_client_communication_mappings_index = 0;
+
+	gnunet_search_communication_flush();
+}
+
 void gnunet_search_client_communication_send_result(void const *data, size_t size, char type, uint16_t id) {
 	size_t message_size = sizeof(struct search_response) + size;
 	void *message_buffer = malloc(message_size);
