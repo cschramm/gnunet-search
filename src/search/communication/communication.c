@@ -161,9 +161,6 @@ char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnun
 				size_t fragment_message_size = ntohs(fragment->size);
 				size_t fragment_payload_size = fragment_message_size - sizeof(struct GNUNET_MessageHeader)
 						- sizeof(struct message_header);
-				/*
-				 * Todo: Security
-				 */
 				fwrite(fragment_msg_header + 1, 1, fragment_payload_size, memstream);
 				GNUNET_free(fragment);
 			}
@@ -174,9 +171,6 @@ char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnun
 			GNUNET_free(buffer);
 			return 0;
 		} else {
-			/*
-			 * Todo: Security
-			 */
 			void *buffer = GNUNET_malloc(gnunet_message_size);
 			memcpy(buffer, gnunet_message, gnunet_message_size);
 			queue_enqueue(fragments, buffer);

@@ -95,6 +95,10 @@ static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *se
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &gnunet_search_shutdown_task, NULL);
 }
 
+/*
+ * Todo: Assert => behandeln!
+ */
+
 /**
  * The main function for the ext service.
  *
