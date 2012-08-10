@@ -35,10 +35,6 @@ static char gnunet_search_storage_string_compare(void const *a, void const *b) {
 	return 0;
 }
 
-void gnunet_search_storage_init() {
-	storage = al_dictionary_construct(&gnunet_search_storage_string_compare);
-}
-
 static void gnunet_search_storage_string_arraylist_free(void *arraylist) {
 	array_list_t *_arraylist = (array_list_t*)arraylist;
 	size_t _arraylist_size = array_list_get_length(_arraylist);
@@ -48,6 +44,10 @@ static void gnunet_search_storage_string_arraylist_free(void *arraylist) {
 		free(value);
 	}
 	array_list_free(_arraylist);
+}
+
+void gnunet_search_storage_init() {
+	storage = al_dictionary_construct(&gnunet_search_storage_string_compare);
 }
 
 void gnunet_search_storage_free() {

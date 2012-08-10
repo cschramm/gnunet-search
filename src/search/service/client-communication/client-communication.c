@@ -20,18 +20,18 @@
 #include "../normalization/normalization.h"
 #include "client-communication.h"
 
-static struct GNUNET_SERVER_Client *_client;
+static struct GNUNET_SERVER_Client *gnunet_search_client_communication_client;
 
 #define GNUNET_SEARCH_CLIENT_COMMUNICATION_MAPPINGS_SIZE 15
 struct gnunet_search_client_communication_message_mapping {
 	uint16_t request_id;
 	uint64_t flow_id;
 };
-struct gnunet_search_client_communication_message_mapping *gnunet_search_client_communication_mappings;
-size_t gnunet_search_client_communication_mappings_length;
-size_t gnunet_search_client_communication_mappings_index;
+static struct gnunet_search_client_communication_message_mapping *gnunet_search_client_communication_mappings;
+static size_t gnunet_search_client_communication_mappings_length;
+static size_t gnunet_search_client_communication_mappings_index;
 
-static void gnunet_search_process_flooding(char const *keyword, uint64_t flow_id) {
+static void gnunet_search_client_communication_flooding_process(char const *keyword, uint64_t flow_id) {
 	gnunet_search_flooding_peer_data_flood(keyword, strlen(keyword) + 1, GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST,
 			flow_id);
 //	gnunet_search_flooding_peer_request_flood(keyword, strlen(keyword) + 1);
@@ -82,7 +82,7 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 			gnunet_search_client_communication_mappings_length++;
 
 //		search_process(keyword);
-		gnunet_search_process_flooding(keyword, flow_id);
+		gnunet_search_client_communication_flooding_process(keyword, flow_id);
 
 		free(keyword);
 	}
@@ -100,17 +100,17 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 	}
 }
 
+static void gnunet_search_client_communication_request_notify_transmit_ready(size_t size, void *cls,
+		size_t (*handler)(void*, size_t, void*), struct GNUNET_TIME_Relative max_delay) {
+	GNUNET_SERVER_notify_transmit_ready(gnunet_search_client_communication_client, size, max_delay, handler, cls);
+}
+
 void gnunet_search_client_communication_message_handle(void *cls, struct GNUNET_SERVER_Client *client,
 		const struct GNUNET_MessageHeader *gnunet_message) {
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 	GNUNET_SERVER_client_keep(client);
-	_client = client;
+	gnunet_search_client_communication_client = client;
 	gnunet_search_communication_receive(gnunet_message);
-}
-
-static void gnunet_search_client_communication_request_notify_transmit_ready(size_t size, void *cls,
-		size_t (*handler)(void*, size_t, void*), struct GNUNET_TIME_Relative max_delay) {
-	GNUNET_SERVER_notify_transmit_ready(_client, size, max_delay, handler, cls);
 }
 
 void gnunet_search_client_communication_init() {

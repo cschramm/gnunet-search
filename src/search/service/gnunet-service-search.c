@@ -32,20 +32,13 @@
 
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
-#include <gnunet/gnunet_dht_service.h>
-#include <gnunet/gnunet_core_service.h>
-#include "gnunet_protocols_search.h"
 
-#include "service/url-processor/url-processor.h"
 #include "service/util/service-util.h"
 #include "service/client-communication/client-communication.h"
-#include "../communication/communication.h"
 #include "dht/dht.h"
 #include "flooding/flooding.h"
 #include "storage/storage.h"
 #include "globals/globals.h"
-
-#include <collections/arraylist/arraylist.h>
 
 /**
  * Task run during shutdown.
