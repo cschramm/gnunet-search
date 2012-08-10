@@ -55,6 +55,7 @@ struct __attribute__((__packed__)) message_header {
 
 struct __attribute__((__packed__)) search_command {
 	uint8_t action;
+	uint16_t id;
 	uint64_t size;
 };
 
@@ -63,6 +64,7 @@ struct __attribute__((__packed__)) search_command {
 
 struct __attribute__((__packed__)) search_response {
 	uint8_t type;
+	uint16_t id;
 	uint64_t size;
 };
 

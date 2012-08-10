@@ -47,56 +47,6 @@
 
 #include <collections/arraylist/arraylist.h>
 
-
-static void gnunet_search_process_flooding(char const *keyword) {
-	gnunet_search_flooding_peer_request_flood(keyword, strlen(keyword) + 1);
-}
-
-/**
- * Handle message from client.
- *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static void gnunet_search_client_message_handle(size_t size, void *buffer) {
-	GNUNET_assert(size >= sizeof(struct search_command));
-
-	struct search_command *cmd = (struct search_command*) buffer;
-
-	GNUNET_assert(size == cmd->size);
-
-	printf("Command: action = %u, size = %" PRIu64 "\n", cmd->action, cmd->size);
-
-	if(cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
-		char *keyword;
-		gnunet_search_util_cmd_keyword_get(&keyword, cmd);
-
-		printf("Searching keyword: %s...\n", keyword);
-
-//		search_process(keyword);
-		gnunet_search_process_flooding(keyword);
-
-		free(keyword);
-	}
-	if(cmd->action == GNUNET_SEARCH_ACTION_ADD) {
-		char **urls;
-		size_t urls_length = gnunet_search_url_processor_cmd_urls_get(&urls, cmd);
-
-		gnunet_search_dht_url_list_put(urls, urls_length, 2);
-
-		gnunet_search_client_communication_send_result(NULL, 0, GNUNET_SEARCH_RESPONSE_TYPE_DONE);
-
-		for(size_t i = 0; i < urls_length; ++i)
-			free(urls[i]);
-		free(urls);
-	}
-
-//	printf("blah :-)\n");
-}
-
 /**
  * Task run during shutdown.
  *
@@ -126,7 +76,7 @@ static void gnunet_search_shutdown_task(void *cls, const struct GNUNET_SCHEDULER
  */
 static void gnunet_search_client_disconnect_handle(void *cls, struct GNUNET_SERVER_Client * client) {
 	/*
-	 * Todo: Flush message queue...
+	 * Todo: Flush message queue / fragmentation stuff...
 	 */
 }
 
@@ -139,7 +89,6 @@ static void gnunet_search_client_disconnect_handle(void *cls, struct GNUNET_SERV
  */
 static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c) {
 	gnunet_search_client_communication_init();
-	gnunet_search_communication_listener_add(&gnunet_search_client_message_handle);
 
 	static const struct GNUNET_SERVER_MessageHandler handlers[] = { {
 			&gnunet_search_client_communication_message_handle, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL, NULL, 0,

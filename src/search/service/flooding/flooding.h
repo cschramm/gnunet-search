@@ -33,6 +33,7 @@ extern void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdenti
 extern void gnunet_search_flooding_peer_request_message_flood(struct GNUNET_MessageHeader const *message);
 extern void gnunet_search_flooding_peer_request_flood(void const *data, size_t data_size);
 extern void gnunet_search_flooding_peer_response_flood(void const *data, size_t data_size, uint64_t flow_id);
+extern void gnunet_search_flooding_peer_data_flood(void const *data, size_t data_size, uint8_t type, uint64_t flow_id);
 //extern void gnunet_search_handlers_set(
 //		void (*message_notification_handler)(struct GNUNET_PeerIdentity const *, struct gnunet_search_flooding_message *,
 //				size_t size));

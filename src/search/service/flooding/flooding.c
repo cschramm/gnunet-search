@@ -151,7 +151,10 @@ static void gnunet_search_flooding_message_notification_handler(struct GNUNET_Pe
 		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE: {
 			void *data = flooding_message + 1;
 			size_t data_size = flooding_message_size - sizeof(struct gnunet_search_flooding_message);
-			gnunet_search_client_communication_send_result(data, data_size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT);
+
+			uint16_t request_id = gnunet_search_client_communication_by_flow_id_request_id_get(flooding_message->flow_id);
+
+			gnunet_search_client_communication_send_result(data, data_size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT, request_id);
 			break;
 		}
 	}
@@ -248,7 +251,7 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 	}
 }
 
-static void gnunet_search_flooding_peer_data_flood(void const *data, size_t data_size, uint8_t type, uint64_t flow_id) {
+void gnunet_search_flooding_peer_data_flood(void const *data, size_t data_size, uint8_t type, uint64_t flow_id) {
 	size_t message_total_size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct gnunet_search_flooding_message) + data_size;
 
 	GNUNET_assert(message_total_size <= GNUNET_SERVER_MAX_MESSAGE_SIZE);

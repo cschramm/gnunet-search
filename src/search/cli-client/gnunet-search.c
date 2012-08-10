@@ -51,6 +51,8 @@ static void gnunet_search_receive_handler(size_t size, void *buffer) {
 
 	struct search_response *response = (struct search_response*)buffer;
 
+	printf("id: %u\n", response->id);
+
 	GNUNET_assert(size == response->size);
 
 	switch(response->type) {
@@ -90,6 +92,7 @@ static void gnunet_search_transmit_urls(const char *file) {
 
 	cmd->size = serialized_size;
 	cmd->action = GNUNET_SEARCH_ACTION_ADD;
+	cmd->id = 0;
 
 	for(int i = 0; i < urls_length; ++i)
 		free(urls[i]);
@@ -113,6 +116,7 @@ static void gnunet_search_transmit_keyword(const char *keyword) {
 	struct search_command *cmd = (struct search_command*) serialized;
 	cmd->action = GNUNET_SEARCH_ACTION_SEARCH;
 	cmd->size = serialized_size;
+	cmd->id = 0;
 
 	gnunet_search_communication_transmit(serialized, serialized_size);
 
