@@ -93,6 +93,8 @@ static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *se
 	gnunet_search_flooding_init();
 
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &gnunet_search_shutdown_task, NULL);
+
+//	gnunet_search_storage_key_value_add("hallo", "http://www.hallo.de");
 }
 
 /*
