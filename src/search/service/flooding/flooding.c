@@ -22,14 +22,14 @@
 #include <collections/arraylist/arraylist.h>
 
 struct gnunet_search_flooding_data_flood_parameters {
-	struct GNUNET_PeerIdentity const *sender;
+	struct GNUNET_PeerIdentity *sender;
 	void *data;
 	size_t size;
 };
 
 struct gnunet_search_flooding_routing_entry {
 	uint64_t flow_id;
-	struct GNUNET_PeerIdentity const next_hop;
+	struct GNUNET_PeerIdentity next_hop;
 	uint8_t own_request;
 };
 
