@@ -72,10 +72,14 @@ static char *keyword_string;
  */
 static void gnunet_search_receive_handler(size_t size, void *buffer) {
 	GNUNET_assert(size >= sizeof(struct search_response));
+	if(size < sizeof(struct search_response))
+		return;
 
 	struct search_response *response = (struct search_response*)buffer;
 
 	GNUNET_assert(size == response->size);
+	if(size != response->size)
+		return;
 
 	switch(response->type) {
 		case GNUNET_SEARCH_RESPONSE_TYPE_DONE: {

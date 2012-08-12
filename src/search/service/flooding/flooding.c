@@ -47,6 +47,8 @@ static size_t gnunet_search_flooding_notify_transmit_ready(void *cls, size_t siz
 	size_t message_size = ntohs(header->size);
 
 	GNUNET_assert(size >= message_size);
+	if(size < message_size)
+		return;
 
 	memcpy(buffer, cls, message_size);
 //	free(cls);
@@ -220,6 +222,8 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 	 * Todo: Byte order for IDs
 	 */
 	GNUNET_assert(message_size >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct gnunet_search_flooding_message));
+	if(message_size < sizeof(struct GNUNET_MessageHeader) + sizeof(struct gnunet_search_flooding_message))
+		return;
 
 	struct gnunet_search_flooding_message *flooding_message = (struct gnunet_search_flooding_message*) (message + 1);
 
@@ -296,6 +300,8 @@ void gnunet_search_flooding_peer_data_flood(void const *data, size_t data_size, 
 			+ data_size;
 
 	GNUNET_assert(message_total_size <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
+	if(message_total_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+		return;
 
 	void *buffer = GNUNET_malloc(message_total_size);
 

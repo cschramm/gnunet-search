@@ -46,6 +46,8 @@ static size_t gnunet_search_communication_transmit_ready(void *cls, size_t size,
 	msg_size += msg->size;
 
 	GNUNET_assert(size >= msg_size);
+	if(size < msg_size)
+		return;
 
 	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) buffer;
 	header->type = GNUNET_MESSAGE_TYPE_SEARCH;
@@ -140,6 +142,10 @@ char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnun
 	size_t gnunet_message_size = ntohs(gnunet_message->size);
 
 	GNUNET_assert(gnunet_message_size >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct message_header));
+	if(gnunet_message_size < sizeof(struct GNUNET_MessageHeader) + sizeof(struct message_header)) {
+		gnunet_search_communication_receive(NULL);
+		return;
+	}
 
 	size_t payload_size = gnunet_message_size - sizeof(struct GNUNET_MessageHeader) - sizeof(struct message_header);
 
