@@ -62,13 +62,13 @@ static void gnunet_search_client_communication_flooding_process(char const *keyw
  */
 static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 	GNUNET_assert(size >= sizeof(struct search_command));
-	if(size < sizeof(struct search_response))
+	if(size < sizeof(struct search_command))
 		return;
 
 	struct search_command *cmd = (struct search_command*) buffer;
 
 	GNUNET_assert(size == cmd->size);
-	if(size != response->size)
+	if(size != cmd->size)
 		return;
 
 	printf("Command: action = %u, size = %" PRIu64 "\n", cmd->action, cmd->size);
