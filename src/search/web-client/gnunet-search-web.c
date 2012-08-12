@@ -197,7 +197,7 @@ void render_page(struct request_context * context, const char *q, unsigned short
  * @param id The query's ID
  */
 struct query * lookup_query(unsigned short id) {
-	if (!query_list || query_list->len < id)
+	if (!query_list || !id || query_list->len < id)
 		return 0;
 	
 	struct query * result = query_list->first;
