@@ -117,7 +117,7 @@ NEOERR * render_output(void * ctx, char *output) {
 	struct request_context * context = (struct request_context *)ctx;
 	char * tmp = GNUNET_malloc(strlen(context->output) + strlen(output) + 1);
 	sprintf(tmp, "%s%s", context->output, output);
-	free(context->output);
+	GNUNET_free(context->output);
 	context->output = tmp;
 	return STATUS_OK;
 }
