@@ -97,10 +97,6 @@ static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *se
 //	gnunet_search_storage_key_value_add("hallo", "http://www.hallo.de");
 }
 
-/*
- * Todo: Assert => behandeln!
- */
-
 /**
  * The main function for the ext service.
  *
