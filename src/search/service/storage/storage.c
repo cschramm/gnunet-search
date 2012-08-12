@@ -5,9 +5,13 @@
  *      Author: jucs
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#include <gnunet/platform.h>
+#include <gnunet/gnunet_util_lib.h>
 
 #include "storage.h"
 #include "../globals/globals.h"
@@ -34,14 +38,24 @@ static char gnunet_search_storage_string_compare(void const *a, void const *b) {
 	return 0;
 }
 
+static void gnunet_search_storage_string_arraylist_free(void *arraylist) {
+	array_list_t *_arraylist = (array_list_t*)arraylist;
+	size_t _arraylist_size = array_list_get_length(_arraylist);
+	for (long int i = 0; i < _arraylist_size; ++i) {
+		void *value;
+		array_list_get(_arraylist, (void const **)&value, i);
+		GNUNET_free(value);
+	}
+	array_list_free(_arraylist);
+}
+
 void gnunet_search_storage_init() {
 	storage = al_dictionary_construct(&gnunet_search_storage_string_compare);
 }
 
 void gnunet_search_storage_free() {
-	/*
-	 * Todo: ;-)
-	 */
+	al_dictionary_remove_and_free_all(storage, &free, &gnunet_search_storage_string_arraylist_free);
+	al_dictionary_free(storage);
 }
 
 void gnunet_search_storage_key_value_add(char const *key, char const *value) {
@@ -56,27 +70,27 @@ void gnunet_search_storage_key_value_add(char const *key, char const *value) {
 	if(search_result) {
 		known_values = array_list_construct();
 
-		char *key_copy = (char*) malloc(key_length + 1);
+		char *key_copy = (char*) GNUNET_malloc(key_length + 1);
 		memcpy(key_copy, key, key_length + 1);
 
-		char *value_copy = (char*) malloc(value_length + 1);
+		char *value_copy = (char*) GNUNET_malloc(value_length + 1);
 		memcpy(value_copy, value, value_length + 1);
 
 		array_list_insert(known_values, value_copy);
 
 		al_dictionary_insert(storage, key_copy, known_values);
 	} else {
-		known_values = (array_list_t const*) from_storage;
+		known_values = (array_list_t *) from_storage;
 
 		size_t known_values_length = array_list_get_length(known_values);
 		for(long int i = 0; i < known_values_length; ++i) {
 			const char *element;
-			array_list_get(known_values, &element, i);
+			array_list_get(known_values, (void const **)&element, i);
 			if(!strcmp(element, value))
 				return;
 		}
 
-		char *value_copy = (char*) malloc(value_length + 1);
+		char *value_copy = (char*) GNUNET_malloc(value_length + 1);
 		memcpy(value_copy, value, value_length + 1);
 
 		array_list_insert(known_values, value_copy);
@@ -101,7 +115,7 @@ size_t gnunet_search_storage_value_serialize(char **buffer, array_list_t *values
 	size_t values_length = array_list_get_length(values);
 	for(long int i = 0; i < values_length; ++i) {
 		char *next;
-		array_list_get(values, &next, i);
+		array_list_get(values, (void const **)&next, i);
 		size_t next_size = strlen(next) + 1;
 		fflush(memstream);
 		if(buffer_size + next_size <= maximal_size)

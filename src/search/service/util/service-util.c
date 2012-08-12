@@ -26,9 +26,9 @@ void gnunet_search_util_key_value_generate_simple(char **key_value, const char *
 }
 
 /*
- * Security?
+ * Todo: Security?
  */
 void gnunet_search_util_cmd_keyword_get(char **keyword, struct search_command const *cmd) {
-	*keyword = (char*) malloc(strlen((char*) (cmd + 1)) + 1);
+	*keyword = (char*) GNUNET_malloc(strlen((char*) (cmd + 1)) + 1);
 	strcpy(*keyword, (char*) (cmd + 1));
 }

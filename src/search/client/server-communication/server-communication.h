@@ -10,8 +10,11 @@
 
 #include <stdint.h>
 
-extern void gnunet_search_server_communication_receive(void* cls);
-extern int gnunet_search_server_communication_init(const struct GNUNET_CONFIGURATION_Handle *cfg);
+#include <gnunet/platform.h>
+#include <gnunet/gnunet_util_lib.h>
+
+extern void gnunet_search_server_communication_receive();
+extern char gnunet_search_server_communication_init(const struct GNUNET_CONFIGURATION_Handle *cfg);
 extern void gnunet_search_server_communication_free();
 
 #endif /* SERVER_COMMUNICATION_C_ */
