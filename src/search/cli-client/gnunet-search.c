@@ -1,27 +1,23 @@
-/*
- This file is part of GNUnet.
- (C)
-
- GNUnet is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published
- by the Free Software Foundation; either version 3, or (at your
- option) any later version.
-
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with GNUnet; see the file COPYING.  If not, write to the
- Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- Boston, MA 02111-1307, USA.
- */
-
 /**
  * @file cli-client/gnunet-search.c
- * @brief ...
+ * @brief This file contains all functions pertaining to the GNUnet Search client's main component.
  * @author Julian Kranz
+ */
+/*
+ *  This file is part of GNUnet Search.
+ *
+ *  GNUnet Search is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  GNUnet Search is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNUnet Search.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #define _GNU_SOURCE
@@ -38,15 +34,42 @@
 #include "../communication/communication.h"
 #include "util/client-util.h"
 
+/**
+ * @brief This constant defines the string representation for the search action. It is used to match the user's command line options.
+ */
 #define GNUNET_SEARCH_ACTION_STRING_SEARCH "search"
+/**
+ * @brief This constant defines the string representation for the URL add action. It is used to match the user's command line options.
+ */
 #define GNUNET_SEARCH_ACTION_STRING_ADD "add"
 
 static int ret;
 
+/**
+ * @brief This variable stores the string given by the user for the action command line parameter.
+ */
 static char *action_string;
+/**
+ * @brief This variable stores the string given by the user for the URL file command line parameter.
+ */
 static char *file_string;
+/**
+ * @brief This variable stores the string given by the user for the search keyword command line parameter.
+ */
 static char *keyword_string;
 
+/**
+ * @brief This function handles a buffer newly received by the communication component.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function handles a buffer newly received by the communication component. The buffer contains all fragments beloging
+ * to a specific message. The completeness of the message has to be verified (e.g. by comparing the size of the message with
+ * the length of data received).
+ *
+ * @param size the actual size of the buffer received
+ * @param buffer the buffer containing the fragments received
+ */
 static void gnunet_search_receive_handler(size_t size, void *buffer) {
 	GNUNET_assert(size >= sizeof(struct search_response));
 
@@ -80,6 +103,16 @@ static void gnunet_search_receive_handler(size_t size, void *buffer) {
 	}
 }
 
+/**
+ * @brief This function transmits URLs contained in a file to the service.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function transmits URLs contained in a file to the service. The file has to contain a '\n'-seperated list of URLs. The URLs
+ * are sent to the service using an ADD action.
+ *
+ * @param file the path to the file that contains the URLs
+ */
 static void gnunet_search_transmit_urls(const char *file) {
 	char **urls = NULL;
 	size_t urls_length = gnunet_search_util_urls_read(&urls, file);
@@ -102,6 +135,15 @@ static void gnunet_search_transmit_urls(const char *file) {
 	GNUNET_free(serialized);
 }
 
+/**
+ * @brief This function transmit a request for a keyword to the service.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function transmit a request for a keyword to the service. The keyword is sent to the service using an ADD action.
+ *
+ * @param keyword the keyword to search for
+ */
 static void gnunet_search_transmit_keyword(const char *keyword) {
 	void *serialized;
 	size_t serialized_size;
@@ -122,6 +164,12 @@ static void gnunet_search_transmit_keyword(const char *keyword) {
 	GNUNET_free(serialized);
 }
 
+/**
+ * @brief This function handles the shutdon of the application.
+ *
+ * @param cls the GNUnet closure
+ * @param tc the GMUnet scheduler task context
+ */
 static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 	gnunet_search_server_communication_free();
 
@@ -129,12 +177,12 @@ static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 }
 
 /**
- * Main function that will be run by the scheduler.
+ * @brief This function is the main function that will be run by the scheduler.
  *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param cls the GNUnet closure
+ * @param args the remaining command-line arguments
+ * @param cfgfile the name of the configuration file used (for saving, can be NULL!)
+ * @param cfg the configuration
  */
 static void gnunet_search_run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
@@ -161,11 +209,11 @@ static void gnunet_search_run(void *cls, char * const *args, const char *cfgfile
 }
 
 /**
- * The main function to ext.
+ * @brief This function is the main function of the application.
  *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * @param argc the number of arguments from the command line
+ * @param argv the command line arguments
+ * @return 0 in case of success, 1 on error
  */
 int main(int argc, char * const *argv) {
 	static const struct GNUNET_GETOPT_CommandLineOption options[] = { { 'a', "action", "search|add",
@@ -177,5 +225,3 @@ int main(int argc, char * const *argv) {
 			== GNUNET_PROGRAM_run(argc, argv, "gnunet-search [options [value]]", gettext_noop("search"), options, &gnunet_search_run,
 					NULL)) ? ret : 1;
 }
-
-/* end of gnunet-search.c */
