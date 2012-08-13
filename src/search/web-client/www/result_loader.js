@@ -9,8 +9,11 @@ function load_results(query, offset) {
 			results = JSON.parse(xmlHttp.responseText);
 			for (i in results) {
 				var li = document.createElement('li');
+				var a = document.createElement('a');
+				a.href = results[i];
 				var text = document.createTextNode(results[i]);
-				li.appendChild(text);
+				a.appendChild(text);
+				li.appendChild(a);
 				document.getElementsByTagName('ul')[0].appendChild(li);
 				offset++;
 			}
