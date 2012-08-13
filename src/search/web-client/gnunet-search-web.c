@@ -363,7 +363,7 @@ int uri_handler(void *cls, struct MHD_Connection *connection, const char *url, c
  * @brief Task run during shutdown.
  *
  *
- * @param cls the webserver context
+ * @param cls the libmicrohttpd handler
  * @param tc unused
  */
 void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
@@ -372,6 +372,35 @@ void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 	MHD_stop_daemon(cls);
 
 	exit(0);
+}
+
+/**
+ * @brief "Loop body" for libmicrohttpd request processing
+ *
+ * @param cls MHD_Daemon to run
+ * @param tc unused
+ */
+static void gnunet_search_web_process_requests(void * cls, const struct GNUNET_SCHEDULER_TaskContext * tc) {
+	fd_set rs, ws, es;
+	FD_ZERO(&rs);
+	FD_ZERO(&ws);
+	FD_ZERO(&es);
+	struct timeval tv;
+	struct timeval * tvp;
+	unsigned MHD_LONG_LONG mhd_timeout;
+	int max = 0;
+	if (MHD_get_fdset(cls, &rs, &ws, &es, &max) != MHD_YES)
+		exit(1);
+
+	if (MHD_get_timeout(cls, &mhd_timeout) == MHD_YES) {
+		tv.tv_sec = mhd_timeout / 1000;
+		tv.tv_usec = (mhd_timeout - (tv.tv_sec * 1000)) * 1000;
+		tvp = &tv;
+	} else
+		tvp = 0;
+	select(max + 1, &rs, &ws, &es, tvp);
+	MHD_run(cls);
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_web_process_requests, cls);
 }
 
 unsigned int port = 8080;
@@ -384,7 +413,7 @@ int ret;
  *
  * Gather list of local files and start libmicrohttpd server
  *
- * @param cls closure
+ * @param cls libmicrohttpd handle
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
@@ -434,8 +463,9 @@ void run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = local ? inet_addr("127.0.0.1") : INADDR_ANY;
 	
-	struct MHD_Daemon * daemon = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, port, 0, 0, uri_handler, 0, MHD_OPTION_SOCK_ADDR, &addr, MHD_OPTION_END);
+	struct MHD_Daemon * daemon = MHD_start_daemon(0, port, 0, 0, uri_handler, 0, MHD_OPTION_SOCK_ADDR, &addr, MHD_OPTION_END);
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, daemon);
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_web_process_requests, daemon);
 }
 
 /**
