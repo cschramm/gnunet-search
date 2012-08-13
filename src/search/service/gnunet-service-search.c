@@ -62,16 +62,6 @@ static void gnunet_search_shutdown_task(void *cls, const struct GNUNET_SCHEDULER
 }
 
 /**
- * A client disconnected.  Remove all of its data structure entries.
- *
- * @param cls closure, NULL
- * @param client identification of the client
- */
-static void gnunet_search_client_disconnect_handle(void *cls, struct GNUNET_SERVER_Client * client) {
-	gnunet_search_client_communication_flush();
-}
-
-/**
  * Process statistics requests.
  *
  * @param cls closure
@@ -79,14 +69,7 @@ static void gnunet_search_client_disconnect_handle(void *cls, struct GNUNET_SERV
  * @param c configuration to use
  */
 static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c) {
-	gnunet_search_client_communication_init();
-
-	static const struct GNUNET_SERVER_MessageHandler handlers[] = { {
-			&gnunet_search_client_communication_message_handle, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL, NULL, 0,
-			0 } };
-	gnunet_search_globals_cfg = c;
-	GNUNET_SERVER_add_handlers(server, handlers);
-	GNUNET_SERVER_disconnect_notify(server, &gnunet_search_client_disconnect_handle, NULL);
+	gnunet_search_client_communication_init(server);
 
 	gnunet_search_storage_init();
 	gnunet_search_dht_init();
