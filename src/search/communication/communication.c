@@ -136,6 +136,26 @@ static size_t gnunet_search_communication_transmit_ready(void *cls, size_t size,
 }
 
 /**
+ * @brief This function frees a previously queued message and its buffer.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function frees a previously queued message and its buffer. GNUnet does not call transmit_ready() in case an error occurs.
+ * In that case this function cannot take care of freeing the message data structure and the buffer. In order to solve that problem
+ * this handler is scheduled to be called after the transmit_ready() function call. As this is a ordinary scheduled task it is called
+ * despite possible communication errors. For this reason the approch prevents memory leaks.
+ *
+ * @param cls the GNUnet closure containing a reference to message to be freed
+ * @tc the GNUnet task context (not used)
+ */
+static void gnunet_search_communication_queued_message_free_task(void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	struct gnunet_search_communication_queued_message *msg = (struct gnunet_search_communication_queued_message*) cls;
+	GNUNET_free(msg->buffer);
+	GNUNET_free(msg);
+}
+
+/**
  * @brief This function initiates the transmission of the next message.
  *
  * \latexonly \\ \\ \endlatexonly
@@ -165,27 +185,7 @@ static void gnunet_search_communication_transmit_next(void *cls, const struct GN
 	/*
 	 * Todo: Save and free...
 	 */
-	GNUNET_SCHEDULER_add_delayed(gct, &gnunet_search_commuinication_queued_message_free_task, msg);
-}
-
-/**
- * @brief This function frees a previously queued message and its buffer.
- *
- * \latexonly \\ \\ \endlatexonly
- * \em Detailed \em description \n
- * This function frees a previously queued message and its buffer. GNUnet does not call transmit_ready() in case an error occurs.
- * In that case this function cannot take care of freeing the message data structure and the buffer. In order to solve that problem
- * this handler is scheduled to be called after the transmit_ready() function call. As this is a ordinary scheduled task it is called
- * despite possible communication errors. For this reason the approch prevents memory leaks.
- *
- * @param cls the GNUnet closure containing a reference to message to be freed
- * @tc the GNUnet task context (not used)
- */
-static void gnunet_search_commuinication_queued_message_free_task(void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc) {
-	struct gnunet_search_communication_queued_message *msg = (struct gnunet_search_communication_queued_message*) cls;
-	GNUNET_free(msg->buffer);
-	GNUNET_free(msg);
+	GNUNET_SCHEDULER_add_delayed(gct, &gnunet_search_communication_queued_message_free_task, msg);
 }
 
 /**
