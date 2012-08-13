@@ -319,10 +319,27 @@ char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnun
 	}
 }
 
+/**
+ * @brief This function adds a new listener to be called on message arrival
+ *
+ * @param listener the new listener to add
+ */
 void gnunet_search_communication_listener_add(void (*listener)(size_t, void*)) {
 	array_list_insert(gnunet_search_communication_listeners, listener);
 }
 
+/**
+ * @brief This function is used to transmit data from the service to the client or from the client to the service.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function is used to transmit data from the service to the client or from the client to the service. For that purpose it
+ * appends all necessary headers (the fragmentation and the GNUnet header) and queues the message in the output queue. In case
+ * the message is too large for one GNUnet message it is fragmented. In the end a new task to send the message is created.
+ *
+ * @param data the data to be sent
+ * @size the size of the data
+ */
 void gnunet_search_communication_transmit(void *data, size_t size) {
 	size_t maximal_payload_size = GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct message_header)
 			- sizeof(struct GNUNET_MessageHeader);
