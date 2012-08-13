@@ -78,12 +78,10 @@ size_t gnunet_search_url_processor_cmd_urls_get(char ***urls, struct search_comm
 	size_t read_length = sizeof(struct search_command);
 	size_t urls_number = 0;
 	while(read_length < cmd->size) {
-		/*
-		 * Todo: Security...
-		 */
-		size_t url_length = strlen(urls_source);
+		size_t url_length = strnlen(urls_source, cmd->size - read_length);
 		char *url = (char*) GNUNET_malloc(url_length + 1);
-		memcpy(url, urls_source, url_length + 1);
+		memcpy(url, urls_source, url_length);
+		url[url_length] = 0;
 
 		fwrite(&url, sizeof(url), 1, url_stream);
 

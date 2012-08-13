@@ -120,6 +120,8 @@ static void gnunet_search_receive_handler(size_t size, void *buffer) {
 static void gnunet_search_transmit_urls(const char *file) {
 	char **urls = NULL;
 	size_t urls_length = gnunet_search_util_urls_read(&urls, file);
+	if(!urls_length)
+		return;
 
 	char *serialized;
 	size_t serialized_size = gnunet_search_util_serialize((char const * const *)urls, urls_length, &serialized);
