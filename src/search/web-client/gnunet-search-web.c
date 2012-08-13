@@ -241,6 +241,8 @@ static void gnunet_search_web_receive_response(size_t size, void *buffer) {
 	if (size != response->size)
 		return;
 
+	gnunet_search_server_communication_receive();
+
 	if (response->type != GNUNET_SEARCH_RESPONSE_TYPE_RESULT)
 		return;
 
