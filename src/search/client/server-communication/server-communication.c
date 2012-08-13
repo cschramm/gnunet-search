@@ -55,9 +55,9 @@ static void gnunet_search_server_communication_receive_response(void *cls,
  * \latexonly \\ \\ \endlatexonly
  * \em Detailed \em description \n
  * This function is used to call the appropriate GNUnet function in order to initiate message transmission. GNUnet offers different functions
- * for message transmission on server and client side; while the functionality does not differ and the process steps are the same, different
- * API functions and data structures are offered. In order to nevertheless write a generic communication component both the client and the
- * server have to implement their own generic handlers. These generic handlers then call the specific GNUnet API functions for transmission.
+ * for message transmission on the service and client side; while the functionality does not differ and the process steps are the same, different
+ * API functions and data structures are offered. In order to nevertheless implement a generic communication component both the client and the
+ * service have to implement their own generic handlers. These generic handlers then call the specific GNUnet API functions for transmission.
  *
  * @size the size of the message
  * @cls the GNUnet closure for the GNUnet API call

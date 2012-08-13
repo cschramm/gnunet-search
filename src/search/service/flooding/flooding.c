@@ -33,6 +33,10 @@ struct gnunet_search_flooding_routing_entry {
 	uint8_t own_request;
 };
 
+/**
+ * Todo: Output queue?
+ */
+
 static struct gnunet_search_flooding_routing_entry *gnunet_search_flooding_routing_table;
 static size_t gnunet_search_flooding_routing_table_length;
 static size_t gnunet_search_flooding_routing_table_index;

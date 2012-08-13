@@ -1,8 +1,25 @@
-/*
- * communication.c
+/**
+ * @file search/communication/communication.c
+ * @author Julian Kranz
+ * @date 6.8.2012
  *
- *  Created on: Aug 6, 2012
- *      Author: jucs
+ * @brief This file contains all functions pertaining to the GNUnet Search communication component.
+ */
+/*
+ *  This file is part of GNUnet Search.
+ *
+ *  GNUnet Search is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  GNUnet Search is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNUnet Search.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #define _GNU_SOURCE
@@ -19,16 +36,60 @@
 #include <collections/queue/queue.h>
 #include <collections/arraylist/arraylist.h>
 
+/**
+ * @brief This variable stores references to all subscribed listeners; see below for more details.
+ */
 static array_list_t *gnunet_search_communication_listeners;
+/**
+ * @brief This variable implements an output queue for messages.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This variable implements an output queue for messages. Since GNUnet does not allow the user to
+ * queue more than one message at a time it is important to handle this situation correctly. New
+ * mesage are enqueued in this queue and are subequently sent one after one.
+ */
 static queue_t *gnunet_search_communication_message_queue;
+/**
+ * @brief This variable stores a reference to a function which calls the respective notify transmit ready
+ * function of GNUnet.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This variable stores a reference to a function which calls the respective notify transmit ready function
+ * of GNUnet. GNUnet offers different functions
+ * for message transmission on the service and client side; while the functionality does not differ and the process steps are the same, different
+ * API functions and data structures are offered. In order to nevertheless implement a generic communication component both the client and the
+ * service have to implement their own generic handlers. These generic handlers then call the specific GNUnet API functions for transmission.
+ */
 static void (*gnunet_search_communication_request_notify_transmit_ready)(size_t size, void *cls,
 		size_t (*)(void*, size_t, void*), struct GNUNET_TIME_Relative);
 
+/**
+ * @brief This data structure is used to combine all parameters needed for a message waiting in the output queue.
+ */
 struct gnunet_search_communication_queued_message {
+	/**
+	 * @brief This member stores a reference to buffer to be sent.
+	 */
 	void *buffer;
+	/**
+	 * @brief This member stores the size of the buffer.
+	 */
 	size_t size;
 };
 
+/**
+ * @brief This function notifies all listeners about a newly arrived message.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function notifies all listeners about a newly arrived message. It is important to note that a message may be fragmented and thus
+ * consist of multiple GNUnet messages.
+ *
+ * @param size the size of the new message
+ * @param buffer the buffer containing the new message
+ */
 static void gnunet_search_communication_listeners_notify(size_t size, void *buffer) {
 	for(long int i = 0; i < array_list_get_length(gnunet_search_communication_listeners); ++i) {
 		void (*listener)(size_t, void*);
@@ -39,6 +100,15 @@ static void gnunet_search_communication_listeners_notify(size_t size, void *buff
 
 static void gnunet_search_communication_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+/**
+ * @brief This function is called by GNUnet is case a new buffer is available for a message to be sent.
+ *
+ * @param cls the GNUnet closure
+ * @param size the amout of buffer space available
+ * @param buffer the output buffer the message shall be written to
+ *
+ * @return the amout of buffer space written
+ */
 static size_t gnunet_search_communication_transmit_ready(void *cls, size_t size, void *buffer) {
 	size_t msg_size = sizeof(struct GNUNET_MessageHeader);
 
@@ -65,13 +135,19 @@ static size_t gnunet_search_communication_transmit_ready(void *cls, size_t size,
 	return msg_size;
 }
 
-static void gnunet_search_commuinication_queued_message_free_task(void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc) {
-	struct gnunet_search_communication_queued_message *msg = (struct gnunet_search_communication_queued_message*) cls;
-	GNUNET_free(msg->buffer);
-	GNUNET_free(msg);
-}
-
+/**
+ * @brief This function initiates the transmission of the next message.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function initiates the transmission of the next message. In order to do that it dequeues the next message from the
+ * output queue and requests the service or client communication component to call the appropriate GNUnet function for the
+ * transmission of the message. The function is implemented as a GNUnet task; this is done in order to decouple it from the
+ * transmit_ready() function call (see above).
+ *
+ * @param cls the GNUnet closure (not used)
+ * @param tc the GNUnet task context (not used)
+ */
 static void gnunet_search_communication_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 	if(!queue_get_length(gnunet_search_communication_message_queue))
 		return;
@@ -92,6 +168,32 @@ static void gnunet_search_communication_transmit_next(void *cls, const struct GN
 	GNUNET_SCHEDULER_add_delayed(gct, &gnunet_search_commuinication_queued_message_free_task, msg);
 }
 
+/**
+ * @brief This function frees a previously queued message and its buffer.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function frees a previously queued message and its buffer. GNUnet does not call transmit_ready() in case an error occurs.
+ * In that case this function cannot take care of freeing the message data structure and the buffer. In order to solve that problem
+ * this handler is scheduled to be called after the transmit_ready() function call. As this is a ordinary scheduled task it is called
+ * despite possible communication errors. For this reason the approch prevents memory leaks.
+ *
+ * @param cls the GNUnet closure containing a reference to message to be freed
+ * @tc the GNUnet task context (not used)
+ */
+static void gnunet_search_commuinication_queued_message_free_task(void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	struct gnunet_search_communication_queued_message *msg = (struct gnunet_search_communication_queued_message*) cls;
+	GNUNET_free(msg->buffer);
+	GNUNET_free(msg);
+}
+
+/**
+ * @brief This function initialises the communication component.
+ *
+ * @param request_notify_transmit_ready_handler a handler given by the client's over service's communication component that calls the appropriate GNUnet
+ * functions for message transmission
+ */
 void gnunet_search_communication_init(
 		void (*request_notify_transmit_ready_handler)(size_t size, void *cls, size_t (*)(void*, size_t, void*),
 				struct GNUNET_TIME_Relative)) {
@@ -100,6 +202,9 @@ void gnunet_search_communication_init(
 	gnunet_search_communication_request_notify_transmit_ready = request_notify_transmit_ready_handler;
 }
 
+/**
+ * @brief This function releases all resources held by the communication component.
+ */
 void gnunet_search_communication_free() {
 	while(queue_get_length(gnunet_search_communication_message_queue)) {
 		struct gnunet_search_communication_queued_message *msg =
@@ -112,6 +217,14 @@ void gnunet_search_communication_free() {
 	array_list_free(gnunet_search_communication_listeners);
 }
 
+/**
+ * @brief This function resets all active communication sessions.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function resets all active communication sessions. It is used to cope with a client or service disconnect; in that case
+ * already received message fragments are no longer valid and all outgoing messages not yet sent have to be discarded.
+ */
 void gnunet_search_communication_flush() {
 	while(queue_get_length(gnunet_search_communication_message_queue)) {
 		struct gnunet_search_communication_queued_message *msg =
@@ -123,6 +236,20 @@ void gnunet_search_communication_flush() {
 	gnunet_search_communication_receive(NULL);
 }
 
+/**
+ * @brief This function handles the reception of a new GNUnet message that may be a fragment of a communication message.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function handles the reception of a new GNUnet message that may be a fragment of a communication message. For this purpose
+ * the function stores a fragment queue using a static variable. A new message contains a fragmentation header that indicates whether
+ * the message is fragmented and whether the current fragment is the last fragment. In case the current fragment is the last fragment
+ * or the message is not fragmented it is assembled and passed to registered message handlers.
+ *
+ * @param gnunet_message the GNUnet messag received; a NULL reference resets the fragment queue.
+ *
+ * @return a boolean value indicating whether more fragments are needed (1) for the communication message or not (0)
+ */
 char gnunet_search_communication_receive(const struct GNUNET_MessageHeader *gnunet_message) {
 	static queue_t *fragments = NULL;
 	/*
