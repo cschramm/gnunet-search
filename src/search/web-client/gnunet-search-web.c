@@ -47,7 +47,7 @@
 /**
  * @brief The context of the request to be rendered
  */
-struct request_context {
+struct gnunet_search_web_request_context {
 	unsigned int status; //!< HTTP status code
 	char *type; //!< MIME type
 	char *output; //!< Response body
@@ -56,39 +56,39 @@ struct request_context {
 /**
  * @brief Representation of a local file
  */
-struct local_file {
+struct gnunet_search_web_local_file {
 	char * name;
 	char * type;
-	struct local_file * next;
+	struct gnunet_search_web_local_file * next;
 };
 
 /**
  * @brief List of local files
  */
-static struct local_file * local_file_list = 0;
+static struct gnunet_search_web_local_file * gnunet_search_web_local_file_list = 0;
 
 /**
  * @brief Result set for a specific query
  */
-struct query {
+struct gnunet_search_web_query {
 	unsigned int num_res;
-	struct query * next;
+	struct gnunet_search_web_query * next;
 	char **results;
 };
 
 /**
  * @brief A list of queries
  */
-struct query_list {
-	struct query * first; //!< pointer to first query
-	struct query * last; //!< pointer to last query
+struct gnunet_search_web_query_list {
+	struct gnunet_search_web_query * first; //!< pointer to first query
+	struct gnunet_search_web_query * last; //!< pointer to last query
 	unsigned short len; //!< length
 };
 
 /**
  * @brief List of queries
  */
-static struct query_list * query_list = 0;
+static struct gnunet_search_web_query_list * gnunet_search_web_query_list = 0;
 
 /**
  * @brief Renders a ClearSilver error and updates the given request context
@@ -96,7 +96,7 @@ static struct query_list * query_list = 0;
  * @param context request context to put the error message
  * @param err ClearSilver error
  */
-void render_error(struct request_context * context, NEOERR *err) {
+static void gnunet_search_web_render_error(struct gnunet_search_web_request_context * context, NEOERR *err) {
 	STRING str;
 	string_init(&str);
 	nerr_error_string(err, &str);
@@ -113,8 +113,8 @@ void render_error(struct request_context * context, NEOERR *err) {
  * @param ctx request context to append the data to
  * @param output parsed data to append
  */
-NEOERR * render_output(void * ctx, char *output) {
-	struct request_context * context = (struct request_context *)ctx;
+static NEOERR * gnunet_search_web_render_output(void * ctx, char *output) {
+	struct gnunet_search_web_request_context * context = (struct gnunet_search_web_request_context *)ctx;
 	char * tmp = GNUNET_malloc(strlen(context->output) + strlen(output) + 1);
 	sprintf(tmp, "%s%s", context->output, output);
 	GNUNET_free(context->output);
@@ -129,9 +129,9 @@ NEOERR * render_output(void * ctx, char *output) {
  * @param filename request file name
  * @return MHD_response or 0 on error
  */
-struct MHD_Response * serve_file(struct request_context * context, const char *filename) {
-	if (strlen(filename) && local_file_list) {
-		for (struct local_file * current = local_file_list; current; current = current->next) {
+static struct MHD_Response * gnunet_search_web_serve_file(struct gnunet_search_web_request_context * context, const char *filename) {
+	if (strlen(filename) && gnunet_search_web_local_file_list) {
+		for (struct gnunet_search_web_local_file * current = gnunet_search_web_local_file_list; current; current = current->next) {
 			if (!strcmp(current->name, filename)) {
 				char filename[strlen(DATADIR"/") + strlen(current->name) + 1];
 				sprintf(filename, DATADIR"/%s", current->name);
@@ -159,7 +159,7 @@ struct MHD_Response * serve_file(struct request_context * context, const char *f
  * @param q search query
  * @param qid query id
  */
-void render_page(struct request_context * context, const char *q, unsigned short qid) {
+static void gnunet_search_web_render_page(struct gnunet_search_web_request_context * context, const char *q, unsigned short qid) {
 	HDF *hdf;
 	CSPARSE *parse;
 	
@@ -177,17 +177,17 @@ void render_page(struct request_context * context, const char *q, unsigned short
 	if (err == STATUS_OK) {
 		context->output = GNUNET_malloc(1);
 		context->output[0] = 0;
-		err = cs_render(parse, context, render_output);
+		err = cs_render(parse, context, gnunet_search_web_render_output);
 		if (err == STATUS_OK) {
 			nerr_ignore(&err);
 			hdf_destroy(&hdf);
 			context->status = MHD_HTTP_OK;
 			context->type = "text/html";
 		} else {
-			render_error(context, err);
+			gnunet_search_web_render_error(context, err);
 		}
 	} else {
-		render_error(context, err);
+		gnunet_search_web_render_error(context, err);
 	}
 }
 
@@ -196,11 +196,11 @@ void render_page(struct request_context * context, const char *q, unsigned short
  *
  * @param id The query's ID
  */
-struct query * lookup_query(unsigned short id) {
-	if (!query_list || !id || query_list->len < id)
+static struct gnunet_search_web_query * gnunet_search_web_lookup_query(unsigned short id) {
+	if (!gnunet_search_web_query_list || !id || gnunet_search_web_query_list->len < id)
 		return 0;
 	
-	struct query * result = query_list->first;
+	struct gnunet_search_web_query * result = gnunet_search_web_query_list->first;
 	
 	for (id--; id; id--)
 		result = result->next;
@@ -214,7 +214,7 @@ struct query * lookup_query(unsigned short id) {
  * @param size message size
  * @param buffer message
  */
-void receive_response(size_t size, void *buffer) {
+static void gnunet_search_web_receive_response(size_t size, void *buffer) {
 	GNUNET_assert(size >= sizeof(struct search_response));
 	if (size < sizeof(struct search_response))
 		return;
@@ -231,7 +231,7 @@ void receive_response(size_t size, void *buffer) {
 	size_t result_length = size - sizeof(struct search_response);
 
 	// do we actually know the query?
-	struct query * query = lookup_query(response->id);
+	struct gnunet_search_web_query * query = gnunet_search_web_lookup_query(response->id);
 	if (!query)
 		return;
 	
@@ -255,13 +255,13 @@ void receive_response(size_t size, void *buffer) {
  * @param query_id query ID to get results for
  * @param offset offset to start at
  */
-void render_results(struct request_context * context, unsigned short query_id, int offset) {
+static void gnunet_search_web_render_results(struct gnunet_search_web_request_context * context, unsigned short query_id, int offset) {
 	context->status = MHD_HTTP_OK;
 	context->type = "text/html";
 	
 	json_t *arr = json_array();
 
-	struct query * query = lookup_query(query_id);
+	struct gnunet_search_web_query * query = gnunet_search_web_lookup_query(query_id);
 	if (query)
 		for (unsigned int i = offset; i < query->num_res; i++)
 			json_array_append_new(arr, json_string(query->results[i]));
@@ -275,26 +275,26 @@ void render_results(struct request_context * context, unsigned short query_id, i
  * @param q query string
  * @return query id
  */
-unsigned short start_search(const char *q) {
-	if (!query_list) {
-		query_list = GNUNET_malloc(sizeof(struct query_list));
-		query_list->first = 0;
-		query_list->last = 0;
-		query_list->len = 0;
+static unsigned short gnunet_search_web_start_search(const char *q) {
+	if (!gnunet_search_web_query_list) {
+		gnunet_search_web_query_list = GNUNET_malloc(sizeof(struct gnunet_search_web_query_list));
+		gnunet_search_web_query_list->first = 0;
+		gnunet_search_web_query_list->last = 0;
+		gnunet_search_web_query_list->len = 0;
 	}
 	
-	struct query * query = GNUNET_malloc(sizeof(struct query));
+	struct gnunet_search_web_query * query = GNUNET_malloc(sizeof(struct gnunet_search_web_query));
 	query->next = 0;
 	query->results = 0;
 	query->num_res = 0;
 	
-	if (query_list->first && query_list->last)
-		query_list->last->next = query;
+	if (gnunet_search_web_query_list->first && gnunet_search_web_query_list->last)
+		gnunet_search_web_query_list->last->next = query;
 	else
-		query_list->first = query;
-	query_list->last = query;
+		gnunet_search_web_query_list->first = query;
+	gnunet_search_web_query_list->last = query;
 	
-	unsigned short id = ++(query_list->len);
+	unsigned short id = ++(gnunet_search_web_query_list->len);
 	
 	char *serialized;
 	size_t serialized_size;
@@ -330,21 +330,21 @@ unsigned short start_search(const char *q) {
  * @param con_cls unused
  * @return MHD_YES on success, MHD_NO on error
  */
-int uri_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_dat_size, void **con_cls) {
-	struct request_context * context = malloc(sizeof(struct request_context));
+static int gnunet_search_web_uri_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_dat_size, void **con_cls) {
+	struct gnunet_search_web_request_context * context = malloc(sizeof(struct gnunet_search_web_request_context));
 	context->type = "text/plain";
 	
-	struct MHD_Response * response = serve_file(context, url + 1);
+	struct MHD_Response * response = gnunet_search_web_serve_file(context, url + 1);
 
 	if (!response) {
 		if (!strcmp(url, "/")) {
 			const char *q = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "q");
 			unsigned short qid = 0;
 			if (q)
-				qid = start_search(q);
-			render_page(context, q, qid);
+				qid = gnunet_search_web_start_search(q);
+			gnunet_search_web_render_page(context, q, qid);
 		} else if (!strcmp(url, "/results")) {
-			render_results(context, atoi(MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "q")), atoi(MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "o")));
+			gnunet_search_web_render_results(context, atoi(MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "q")), atoi(MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "o")));
 		} else {
 			context->output = GNUNET_malloc(16);
 			strcpy(context->output, "404 - Not Found");
@@ -363,10 +363,10 @@ int uri_handler(void *cls, struct MHD_Connection *connection, const char *url, c
  * @brief Task run during shutdown.
  *
  *
- * @param cls the webserver context
+ * @param cls the libmicrohttpd handler
  * @param tc unused
  */
-void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+static void gnunet_search_web_shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 	gnunet_search_server_communication_free();
 
 	MHD_stop_daemon(cls);
@@ -374,32 +374,61 @@ void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 	exit(0);
 }
 
-unsigned int port = 8080;
-int local = 0;
+/**
+ * @brief "Loop body" for libmicrohttpd request processing
+ *
+ * @param cls MHD_Daemon to run
+ * @param tc unused
+ */
+static void gnunet_search_web_process_requests(void * cls, const struct GNUNET_SCHEDULER_TaskContext * tc) {
+	fd_set rs, ws, es;
+	FD_ZERO(&rs);
+	FD_ZERO(&ws);
+	FD_ZERO(&es);
+	struct timeval tv;
+	struct timeval * tvp;
+	unsigned MHD_LONG_LONG mhd_timeout;
+	int max = 0;
+	if (MHD_get_fdset(cls, &rs, &ws, &es, &max) != MHD_YES)
+		exit(1);
 
-int ret;
+	if (MHD_get_timeout(cls, &mhd_timeout) == MHD_YES) {
+		tv.tv_sec = mhd_timeout / 1000;
+		tv.tv_usec = (mhd_timeout - (tv.tv_sec * 1000)) * 1000;
+		tvp = &tv;
+	} else
+		tvp = 0;
+	select(max + 1, &rs, &ws, &es, tvp);
+	MHD_run(cls);
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_web_process_requests, cls);
+}
+
+static unsigned int port = 8080;
+static int local = 0;
+
+static int ret;
 
 /**
  * @brief Main function that will be run by the scheduler
  *
  * Gather list of local files and start libmicrohttpd server
  *
- * @param cls closure
+ * @param cls libmicrohttpd handle
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
-void run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
+static void gnunet_search_web_run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
 	ret = gnunet_search_server_communication_init(cfg);
 	if (!ret)
 		return;
 
-	gnunet_search_communication_listener_add(&receive_response);
+	gnunet_search_communication_listener_add(&gnunet_search_web_receive_response);
 	gnunet_search_server_communication_receive();
 	
 	srand(time(0));
 
-	struct local_file * current = 0;
+	struct gnunet_search_web_local_file * current = 0;
 	struct dirent * dirent;
 	char *ext;
 	DIR *dir = opendir(DATADIR);
@@ -409,10 +438,10 @@ void run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET
 				continue;
 				
 			if (current) {
-				current->next = GNUNET_malloc(sizeof(struct local_file));
+				current->next = GNUNET_malloc(sizeof(struct gnunet_search_web_local_file));
 				current = current->next;
 			} else {
-				current = local_file_list = GNUNET_malloc(sizeof(struct local_file));
+				current = gnunet_search_web_local_file_list = GNUNET_malloc(sizeof(struct gnunet_search_web_local_file));
 			}
 			current->name = dirent->d_name;
 			current->type = "text/plain";
@@ -434,8 +463,9 @@ void run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = local ? inet_addr("127.0.0.1") : INADDR_ANY;
 	
-	struct MHD_Daemon * daemon = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, port, 0, 0, uri_handler, 0, MHD_OPTION_SOCK_ADDR, &addr, MHD_OPTION_END);
-	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, daemon);
+	struct MHD_Daemon * daemon = MHD_start_daemon(0, port, 0, 0, gnunet_search_web_uri_handler, 0, MHD_OPTION_SOCK_ADDR, &addr, MHD_OPTION_END);
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &gnunet_search_web_shutdown_task, daemon);
+	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_web_process_requests, daemon);
 }
 
 /**
@@ -468,5 +498,5 @@ int main(int argc, char * const *argv) {
 		GNUNET_GETOPT_OPTION_END
 	};
 
-	return (GNUNET_PROGRAM_run(argc, argv, "gnunet-search-web [options]", gettext_noop("GNUnet search webserver"), options, &run, 0) == GNUNET_OK ? 0 : ret);
+	return (GNUNET_PROGRAM_run(argc, argv, "gnunet-search-web [options]", gettext_noop("GNUnet search webserver"), options, &gnunet_search_web_run, 0) == GNUNET_OK ? 0 : ret);
 }
