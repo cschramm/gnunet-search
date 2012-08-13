@@ -69,6 +69,8 @@ static void gnunet_search_shutdown_task(void *cls, const struct GNUNET_SCHEDULER
  * @param c configuration to use
  */
 static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c) {
+	gnunet_search_globals_cfg = c;
+
 	gnunet_search_client_communication_init(server);
 
 	gnunet_search_storage_init();

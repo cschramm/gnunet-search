@@ -235,7 +235,6 @@ void gnunet_search_client_communication_init(struct GNUNET_SERVER_Handle *server
 	static const struct GNUNET_SERVER_MessageHandler handlers[] = { {
 			&gnunet_search_client_communication_message_handle, NULL, GNUNET_MESSAGE_TYPE_SEARCH, 0 }, { NULL, NULL, 0,
 			0 } };
-	gnunet_search_globals_cfg = c;
 	GNUNET_SERVER_add_handlers(server, handlers);
 	GNUNET_SERVER_disconnect_notify(server, &gnunet_search_client_communication_disconnect_handle, NULL);
 }
