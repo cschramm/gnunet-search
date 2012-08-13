@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <endian.h>
 
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
@@ -236,7 +237,7 @@ static void gnunet_search_flooding_message_notification_handler(struct GNUNET_Pe
 						GNUNET_SEARCH_FLOODING_MESSAGE_MAXIMAL_PAYLOAD_SIZE);
 
 				gnunet_search_flooding_peer_response_flood(values_serialized, values_serialized_size,
-						flooding_message->flow_id);
+						be64toh(flooding_message->flow_id));
 
 				GNUNET_free(values_serialized);
 			}
@@ -247,7 +248,7 @@ static void gnunet_search_flooding_message_notification_handler(struct GNUNET_Pe
 			size_t data_size = flooding_message_size - sizeof(struct gnunet_search_flooding_message);
 
 			uint16_t request_id = gnunet_search_client_communication_by_flow_id_request_id_get(
-					flooding_message->flow_id);
+					be64toh(flooding_message->flow_id));
 
 			gnunet_search_client_communication_send_result(data, data_size, GNUNET_SEARCH_RESPONSE_TYPE_RESULT,
 					request_id);
@@ -298,7 +299,6 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 
 	/*
 	 * Todo: Security?
-	 * Todo: Byte order for IDs
 	 */
 	GNUNET_assert(message_size >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct gnunet_search_flooding_message));
 	if(message_size < sizeof(struct GNUNET_MessageHeader) + sizeof(struct gnunet_search_flooding_message))
@@ -309,16 +309,17 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 //	printf("data^2: %s\n", flooding_message + 1);
 
 	size_t flooding_message_size = message_size - sizeof(struct GNUNET_MessageHeader);
+	uint64_t flooding_message_flow_id_host = be64toh(flooding_message->flow_id);
 
 	switch(flooding_message->type) {
 		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST: {
-			if(gnunet_search_flooding_routing_table_id_contains(flooding_message->flow_id)) {
+			if(gnunet_search_flooding_routing_table_id_contains(flooding_message_flow_id_host)) {
 				printf("Message cycle; discarding...\n");
 				break;
 			}
 
 			gnunet_search_flooding_routing_table[gnunet_search_flooding_routing_table_index].flow_id =
-					flooding_message->flow_id;
+					flooding_message_flow_id_host;
 			gnunet_search_flooding_routing_table[gnunet_search_flooding_routing_table_index].own_request = sender
 					== NULL;
 			if(!gnunet_search_flooding_routing_table[gnunet_search_flooding_routing_table_index].own_request)
@@ -343,7 +344,7 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE: {
 			size_t next_hop_index;
 			uint8_t found = gnunet_search_flooding_routing_table_id_get_next_hop_index(&next_hop_index,
-					flooding_message->flow_id);
+					flooding_message_flow_id_host);
 			if(!found) {
 				printf("Unknown flow; aborting...\n");
 				break;
@@ -392,7 +393,7 @@ void gnunet_search_flooding_peer_data_flood(void const *data, size_t data_size, 
 	message->type = htons(GNUNET_MESSAGE_TYPE_SEARCH_FLOODING);
 
 	struct gnunet_search_flooding_message *flooding_message = (struct gnunet_search_flooding_message*) (message + 1);
-	flooding_message->flow_id = flow_id;
+	flooding_message->flow_id = htobe64(flow_id);
 	flooding_message->ttl = 16;
 	flooding_message->type = type;
 
