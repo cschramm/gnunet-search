@@ -20,6 +20,10 @@ input {
 	border: 1px solid black;
 }
 
+form {
+	text-align: center;
+}
+
 #error {
 	margin: auto;
 	color: red;

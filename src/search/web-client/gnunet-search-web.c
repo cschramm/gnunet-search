@@ -27,7 +27,6 @@
 #define _GNU_SOURCE
 
 #include <arpa/inet.h>
-#include <dirent.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
@@ -52,20 +51,6 @@ struct gnunet_search_web_request_context {
 	char *type; //!< MIME type
 	char *output; //!< Response body
 };
-
-/**
- * @brief Representation of a local file
- */
-struct gnunet_search_web_local_file {
-	char * name;
-	char * type;
-	struct gnunet_search_web_local_file * next;
-};
-
-/**
- * @brief List of local files
- */
-static struct gnunet_search_web_local_file * gnunet_search_web_local_file_list = 0;
 
 /**
  * @brief Result set for a specific query
@@ -107,6 +92,10 @@ static void gnunet_search_web_render_error(struct gnunet_search_web_request_cont
 	context->status = 500;
 }
 
+static unsigned int port = 8080;
+static int local = 0;
+static char *www_dir = 0;
+
 /**
  * @brief CSOUTFUNC to render the ClearSilver parse tree
  *
@@ -122,6 +111,18 @@ static NEOERR * gnunet_search_web_render_output(void * ctx, char *output) {
 	return STATUS_OK;
 }
 
+static char * gnunet_search_web_get_resource_path(const char *filename) {
+	static char *base;
+       	if (www_dir)
+		base = www_dir;
+	else
+		base = DATADIR;
+	
+	char *path = GNUNET_malloc((strlen(base) + strlen(filename) + 2) * sizeof(char));
+	sprintf(path, "%s/%s", base, filename);
+	return path;
+}
+
 /**
  * @brief Serve local file if URL matches
  *
@@ -130,25 +131,38 @@ static NEOERR * gnunet_search_web_render_output(void * ctx, char *output) {
  * @return MHD_response or 0 on error
  */
 static struct MHD_Response * gnunet_search_web_serve_file(struct gnunet_search_web_request_context * context, const char *filename) {
-	if (strlen(filename) && gnunet_search_web_local_file_list) {
-		for (struct gnunet_search_web_local_file * current = gnunet_search_web_local_file_list; current; current = current->next) {
-			if (!strcmp(current->name, filename)) {
-				char filename[strlen(DATADIR"/") + strlen(current->name) + 1];
-				sprintf(filename, DATADIR"/%s", current->name);
-				int fd = open(filename, O_RDONLY);
-				if (fd != -1) {
-					struct stat sbuf;
-					if (!fstat(fd, &sbuf)) {
-						context->status = 200;
-						context->type = current->type;
-						return MHD_create_response_from_fd_at_offset(sbuf.st_size, fd, 0);
-					} else {
-						close(fd);
-					}
-				}
+	char *filename_c = GNUNET_strdup(filename);
+	char *bname = basename(filename_c);
+	if (!strlen(filename) || strcmp(filename, bname) || !strcmp(filename, "template.html") || !strcmp(filename, "/")) {
+		GNUNET_free(filename_c);
+		return 0;
+	}
+
+	GNUNET_free(filename_c);
+
+	char *path = gnunet_search_web_get_resource_path(filename);
+	int fd = open(path, O_RDONLY);
+	GNUNET_free(path);
+	if (fd != -1) {
+		struct stat sbuf;
+		if (!fstat(fd, &sbuf)) {
+			context->status = 200;
+			context->type = "text/plain";
+			char *ext = strrchr(filename, '.');
+			if (ext) {
+				if (!strcmp(ext, ".png"))
+					context->type = "image/png";
+				else if (!strcmp(ext, ".css"))
+					context->type = "text/css";
+				else if (!strcmp(ext, ".js"))
+					context->type = "text/javascript";
 			}
+			return MHD_create_response_from_fd_at_offset(sbuf.st_size, fd, 0);
+		} else {
+			close(fd);
 		}
 	}
+
 	return 0;
 }
 
@@ -173,7 +187,9 @@ static void gnunet_search_web_render_page(struct gnunet_search_web_request_conte
 	gethostname(hostname, 256);
 	hdf_set_value(hdf, "hostname", hostname);
 
-	NEOERR *err = cs_parse_file(parse, DATADIR"/template.html");
+	char *path = gnunet_search_web_get_resource_path("template.html");
+	NEOERR *err = cs_parse_file(parse, path);
+	GNUNET_free(path);
 	if (err == STATUS_OK) {
 		context->output = GNUNET_malloc(1);
 		context->output[0] = 0;
@@ -225,6 +241,8 @@ static void gnunet_search_web_receive_response(size_t size, void *buffer) {
 	if (size != response->size)
 		return;
 
+	gnunet_search_server_communication_receive();
+
 	if (response->type != GNUNET_SEARCH_RESPONSE_TYPE_RESULT)
 		return;
 
@@ -237,10 +255,11 @@ static void gnunet_search_web_receive_response(size_t size, void *buffer) {
 	
 	// skip if this result is already known
 	for (unsigned int i = 0; i < query->num_res; i++)
-		if (!strncmp(query->results[0], (const char *)response + 1, result_length))
+		if (!strncmp(query->results[i], (const char *)response + 1, result_length))
 			return;
+
 	// extend results array otherwise
-	GNUNET_realloc(query->results, ++query->num_res * sizeof(char *));
+	GNUNET_realloc(query->results, ++(query->num_res) * sizeof(char *));
 	
 	// copy result into repective array
 	query->results[query->num_res - 1] = (char*)GNUNET_malloc(result_length + 1);
@@ -285,7 +304,7 @@ static unsigned short gnunet_search_web_start_search(const char *q) {
 	
 	struct gnunet_search_web_query * query = GNUNET_malloc(sizeof(struct gnunet_search_web_query));
 	query->next = 0;
-	query->results = 0;
+	query->results = GNUNET_malloc(0);
 	query->num_res = 0;
 	
 	if (gnunet_search_web_query_list->first && gnunet_search_web_query_list->last)
@@ -403,15 +422,12 @@ static void gnunet_search_web_process_requests(void * cls, const struct GNUNET_S
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_web_process_requests, cls);
 }
 
-static unsigned int port = 8080;
-static int local = 0;
-
 static int ret;
 
 /**
  * @brief Main function that will be run by the scheduler
  *
- * Gather list of local files and start libmicrohttpd server
+ * Start libmicrohttpd server
  *
  * @param cls libmicrohttpd handle
  * @param args remaining command-line arguments
@@ -428,36 +444,6 @@ static void gnunet_search_web_run(void *cls, char * const *args, const char *cfg
 	
 	srand(time(0));
 
-	struct gnunet_search_web_local_file * current = 0;
-	struct dirent * dirent;
-	char *ext;
-	DIR *dir = opendir(DATADIR);
-	if (dir) {
-		while ((dirent = readdir(dir))) {
-			if (!strcmp(dirent->d_name, ".") || !strcmp(dirent->d_name, "..") || !strcmp(dirent->d_name, "template.html"))
-				continue;
-				
-			if (current) {
-				current->next = GNUNET_malloc(sizeof(struct gnunet_search_web_local_file));
-				current = current->next;
-			} else {
-				current = gnunet_search_web_local_file_list = GNUNET_malloc(sizeof(struct gnunet_search_web_local_file));
-			}
-			current->name = dirent->d_name;
-			current->type = "text/plain";
-			if ((ext = strrchr(dirent->d_name, '.'))) {
-				if (!strcmp(ext, ".png"))
-					current->type = "image/png";
-				else if (!strcmp(ext, ".css"))
-					current->type = "text/css";
-				else if (!strcmp(ext, ".js"))
-					current->type = "text/javascript";
-			}
-			current->next = 0;
-		}
-		closedir(dir);
-	}
-	
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
@@ -494,6 +480,15 @@ int main(int argc, char * const *argv) {
 			0,
 			&GNUNET_GETOPT_set_one,
 			&local
+		},
+		{
+			'w',
+			"www-dir",
+			"DIRECTORY",
+			gettext_noop("document root containing static resources"),
+			1,
+			&GNUNET_GETOPT_set_string,
+			&www_dir
 		},
 		GNUNET_GETOPT_OPTION_END
 	};
