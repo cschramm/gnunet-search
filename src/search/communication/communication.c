@@ -47,7 +47,7 @@ static array_list_t *gnunet_search_communication_listeners;
  * \em Detailed \em description \n
  * This variable implements an output queue for messages. Since GNUnet does not allow the user to
  * queue more than one message at a time it is important to handle this situation correctly. New
- * mesage are enqueued in this queue and are subequently sent one after one.
+ * mesage are enqueued in this queue and are sent subequently one after one.
  */
 static queue_t *gnunet_search_communication_message_queue;
 /**
@@ -103,6 +103,11 @@ static void gnunet_search_communication_transmit_next(void *cls, const struct GN
 /**
  * @brief This function is called by GNUnet is case a new buffer is available for a message to be sent.
  *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function is called by GNUnet is case a new buffer is available for a message to be sent. This function also takes
+ * care of initiating the transmission of the next message waiting in the output queue.
+ *
  * @param cls the GNUnet closure
  * @param size the amout of buffer space available
  * @param buffer the output buffer the message shall be written to
@@ -141,7 +146,7 @@ static size_t gnunet_search_communication_transmit_ready(void *cls, size_t size,
  * \latexonly \\ \\ \endlatexonly
  * \em Detailed \em description \n
  * This function frees a previously queued message and its buffer. GNUnet does not call transmit_ready() in case an error occurs.
- * In that case this function cannot take care of freeing the message data structure and the buffer. In order to solve that problem
+ * In that case the transmit_ready() function cannot take care of freeing the message data structure and the buffer. In order to solve that problem
  * this handler is scheduled to be called after the transmit_ready() function call. As this is a ordinary scheduled task it is called
  * despite possible communication errors. For this reason the approch prevents memory leaks.
  *
@@ -160,7 +165,7 @@ static void gnunet_search_communication_queued_message_free_task(void *cls,
  *
  * \latexonly \\ \\ \endlatexonly
  * \em Detailed \em description \n
- * This function initiates the transmission of the next message. In order to do that it dequeues the next message from the
+ * This function initiates the transmission of the next message. In order to do that it dequeues the message from the
  * output queue and requests the service or client communication component to call the appropriate GNUnet function for the
  * transmission of the message. The function is implemented as a GNUnet task; this is done in order to decouple it from the
  * transmit_ready() function call (see above).
@@ -192,7 +197,7 @@ static void gnunet_search_communication_transmit_next(void *cls, const struct GN
  * @brief This function initialises the communication component.
  *
  * @param request_notify_transmit_ready_handler a handler given by the client's over service's communication component that calls the appropriate GNUnet
- * functions for message transmission
+ * functions for message transmission.
  */
 void gnunet_search_communication_init(
 		void (*request_notify_transmit_ready_handler)(size_t size, void *cls, size_t (*)(void*, size_t, void*),

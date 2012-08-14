@@ -1,8 +1,31 @@
-/*
- * flooding.c
+/**
+ * @file search/service/flooding/flooding.c
+ * @author Julian Kranz
+ * @date 7.8.2012
  *
- *  Created on: Aug 7, 2012
- *      Author: jucs
+ * @brief This file contains all functions pertaining to the GNUnet Search service's flooding component.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This file contains all functions pertaining to the GNUnet Search service's flooding component. This component handles the flooding
+ * of data to all connected peers and routing answers to requests back to their original senders. It also takes care of answering incoming
+ * requests from other peers querying the storage component for the associated keywords.
+ */
+/*
+ *  This file is part of GNUnet Search.
+ *
+ *  GNUnet Search is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  GNUnet Search is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNUnet Search.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #define _GNU_SOURCE
@@ -30,7 +53,7 @@
  * \em Detailed \em description \n
  * This variable implements an output queue for messages. Since GNUnet does not allow the user to
  * queue more than one message at a time it is important to handle this situation correctly. New
- * mesage are enqueued in this queue and are subequently sent one after one.
+ * mesage are enqueued in this queue and are sent subequently one after one.
  */
 static queue_t *gnunet_search_flooding_message_queue;
 
@@ -49,27 +72,109 @@ struct gnunet_search_flooding_queued_message {
 	struct GNUNET_PeerIdentity *peer;
 };
 
+/**
+ * @brief This data structure stores all information needed to flood data to a given peer.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This data structure stores all information needed to flood data to a given peer. It is necessary since GNUnet uses an
+ * iteration handler to iterate over all connected peers. This handler allows to pass a reference to a closure object; in order
+ * to be able to pass more than one parameter to that handler these parameters have to be combined in a structure.
+ */
 struct gnunet_search_flooding_data_flood_parameters {
+	/**
+	 * @brief This member stores a reference to sender peer that initiated the flooding.
+	 *
+	 * \latexonly \\ \\ \endlatexonly
+	 * \em Detailed \em description \n
+	 * This member stores a reference to sender peer that initiated the flooding. A value of NULL indicates that this flooding
+	 * has been been initiated locally. The sender is needed in order to prevent flooding the message back to its orginator; this
+	 * reduces the bandwidth needed.
+	 */
 	struct GNUNET_PeerIdentity *sender;
+	/**
+	 * @brief This member stores a reference to the data to flood.
+	 */
 	void *data;
+	/**
+	 * @brief This member stores the size of the data.
+	 */
 	size_t size;
 };
 
+/**
+ * @brief This data structure represents an entry in the routing table.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This data structure represents an entry in the routing table. The routing table is used to be able to forward response messages back
+ * to their originator. Whenever a request passes a node it remembers the sending node and the flow id. Since the response will carry
+ * the same flow id the node is able to look up the next hop using the flow id of the response message.
+ */
 struct gnunet_search_flooding_routing_entry {
+	/**
+	 * @brief This member stores the flow (one request, possibly multiple responses) id associated with the message flow the routing entry is used for.
+	 */
 	uint64_t flow_id;
+	/**
+	 * @brief This member stores the next hop to forward response messages to.
+	 */
 	struct GNUNET_PeerIdentity next_hop;
+	/**
+	 * @brief This member stores a boolean value indicating whether the request originated locally. In that the data stored in the next_hop attribute is invalid.
+	 */
 	uint8_t own_request;
 };
 
+/**
+ * @brief This variable stores a reference to the routing table.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This variable stores a reference to the routing table. It is implemented as a simple ring buffer using a FIFO replacement strategy. In case a response arrives for
+ * some flow id that cannot be found in the routing table (since the entry has been replaced or the message is corrupt) the message is discarded.
+ */
 static struct gnunet_search_flooding_routing_entry *gnunet_search_flooding_routing_table;
+/**
+ * @brief This variable stores the current length of routing table; it has fixed maximal length and will never shrink.
+ */
 static size_t gnunet_search_flooding_routing_table_length;
+/**
+ * @brief This variable stores the next index of the routing table to be overwritten in case of a newly received request.
+ */
 static size_t gnunet_search_flooding_routing_table_index;
 
+/**
+ * @brief This variable stores a reference to the GNUnet core handle needed to communicate with other peers.
+ */
 static struct GNUNET_CORE_Handle *gnunet_search_flooding_core_handle;
 
+/**
+ * @brief This variable stores a reference to a function that handles a newly received flooded message.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This variable stores a reference to a function that handles a newly received flooded message. It was originally introduced to allow other components to register a
+ * handler for flooded messages; in the end that was not needed since the messages are handled locally by the flooding component. The handler is called whenever a new
+ * response arrives for a request that has been initiated locally by the current node or in case a request arrives. The latter is done to be able to generate responses
+ * for requests.
+ */
 static void (*_gnunet_search_flooding_message_notification_handler)(struct GNUNET_PeerIdentity const *sender,
 		struct gnunet_search_flooding_message *, size_t);
 
+/**
+ * @brief This function frees a previously queued message and its buffer.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function frees a previously queued message, its buffer and peer. GNUnet does not call transmit_ready() in case an error occurs.
+ * In that case the transmit_ready() function cannot take care of freeing the message data structure and its attributes. In order to solve that problem
+ * this handler is scheduled to be called after the transmit_ready() function call. As this is a ordinary scheduled task it is called
+ * despite possible communication errors. For this reason the approch prevents memory leaks.
+ *
+ * @param cls the GNUnet closure containing a reference to message to be freed
+ * @tc the GNUnet task context (not used)
+ */
 static void gnunet_search_flooding_queued_message_free_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 	struct gnunet_search_flooding_queued_message *msg = (struct gnunet_search_flooding_queued_message*) cls;
 	GNUNET_free(msg->buffer);
@@ -79,6 +184,20 @@ static void gnunet_search_flooding_queued_message_free_task(void *cls, const str
 
 static void gnunet_search_flooding_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+/**
+ * @brief This function is called by GNUnet is case a new buffer is available for a message to be sent.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function is called by GNUnet is case a new buffer is available for a message to be sent. This function also takes
+ * care of initiating the transmission of the next message waiting in the output queue.
+ *
+ * @param cls the GNUnet closure
+ * @param size the amout of buffer space available
+ * @param buffer the output buffer the message shall be written to
+ *
+ * @return the amout of buffer space written
+ */
 static size_t gnunet_search_flooding_notify_transmit_ready(void *cls, size_t size, void *buffer) {
 	struct GNUNET_MessageHeader *header = (struct GNUNET_MessageHeader*) cls;
 	size_t message_size = ntohs(header->size);
@@ -95,6 +214,18 @@ static size_t gnunet_search_flooding_notify_transmit_ready(void *cls, size_t siz
 	return message_size;
 }
 
+/**
+ * @brief This function initiates the transmission of the next message.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function initiates the transmission of the next message. In order to do that it dequeues the message from the
+ * output queue and calls the appropriate GNUnet function for the transmission of the message. The function is implemented as a GNUnet task; this is done in order to decouple it from the
+ * transmit_ready() function call (see above).
+ *
+ * @param cls the GNUnet closure (not used)
+ * @param tc the GNUnet task context (not used)
+ */
 static void gnunet_search_flooding_transmit_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 	if(!queue_get_length(gnunet_search_flooding_message_queue))
 		return;
@@ -105,8 +236,6 @@ static void gnunet_search_flooding_transmit_next(void *cls, const struct GNUNET_
 	struct GNUNET_TIME_Relative max_delay = GNUNET_TIME_relative_get_minute_();
 	struct GNUNET_TIME_Relative gct = GNUNET_TIME_relative_add(max_delay, GNUNET_TIME_relative_get_second_());
 
-//	gnunet_search_communication_request_notify_transmit_ready(sizeof(struct GNUNET_MessageHeader) + msg->size, msg,
-//			&gnunet_search_communication_transmit_ready, max_delay);
 	GNUNET_CORE_notify_transmit_ready(gnunet_search_flooding_core_handle, 0, 0, max_delay, msg->peer, msg->size,
 			&gnunet_search_flooding_notify_transmit_ready, msg->buffer);
 
@@ -116,6 +245,19 @@ static void gnunet_search_flooding_transmit_next(void *cls, const struct GNUNET_
 	GNUNET_SCHEDULER_add_delayed(gct, &gnunet_search_flooding_queued_message_free_task, msg);
 }
 
+/**
+ * @brief This function sends data to a peer.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function sends data to a peer. For this purpose it prepends the GNUnet message header and enqueues the message into the
+ * output queue. After that it adds a new task to send the message. The caller has to take care of not trying to send a message
+ * exceeding the allowed message size.
+ *
+ * @param peer the peer to send the message to
+ * @param data the data to send
+ * @param size the size of the data so send
+ */
 static void gnunet_search_flooding_to_peer_message_send(const struct GNUNET_PeerIdentity *peer, void *data, size_t size) {
 	size_t message_size = sizeof(struct GNUNET_MessageHeader) + size;
 	void *buffer = GNUNET_malloc(message_size);
@@ -139,6 +281,18 @@ static void gnunet_search_flooding_to_peer_message_send(const struct GNUNET_Peer
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_flooding_transmit_next, NULL);
 }
 
+/**
+ * @brief This function is the GNUnet iteration handler called while iterating the connected peers.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function is the GNUnet iteration handler called while iterating the connected peers. It is used to flood data to all known peers.
+ *
+ * @param cls the GNUnet closure; it contains a reference to a data structure (see above) containing a parameters needed to send data to the current peer.
+ * @param peer the peer of the current iteration
+ * @param atsi a reference to the GNUnet ATS information (not used)
+ * @param atsi_count the length of the ATS information (not used)
+ */
 static void gnunet_search_flooding_peer_iterate_handler(void *cls, const struct GNUNET_PeerIdentity *peer,
 		const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count) {
 	if(!peer) {
