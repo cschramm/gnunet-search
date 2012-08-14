@@ -63,8 +63,10 @@ void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void
 		GNUNET_free(keywords[i]);
 	}
 
-	GNUNET_free(urls);
-	GNUNET_free(keywords);
+	if(urls)
+		GNUNET_free(urls);
+	if(keywords)
+		GNUNET_free(keywords);
 
 	GNUNET_free(url);
 }
