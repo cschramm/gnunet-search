@@ -26,9 +26,13 @@ void gnunet_search_util_key_value_generate_simple(char **key_value, const char *
 }
 
 /*
- * Todo: Security?
+ * Security: precond: size > sizeof(struct search_command)
  */
-void gnunet_search_util_cmd_keyword_get(char **keyword, struct search_command const *cmd) {
-	*keyword = (char*) GNUNET_malloc(strlen((char*) (cmd + 1)) + 1);
-	strcpy(*keyword, (char*) (cmd + 1));
+void gnunet_search_util_cmd_keyword_get(char **keyword, struct search_command const *cmd, size_t size) {
+	size_t max_length = size - sizeof(struct search_command);
+	size_t keyword_length = strnlen((char*) (cmd + 1), max_length);
+
+	*keyword = (char*) GNUNET_malloc(keyword_length + 1);
+	memcpy(*keyword, cmd + 1, keyword_length);
+	(*keyword)[keyword_length] = 0;
 }

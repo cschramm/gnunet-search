@@ -43,11 +43,9 @@
 size_t gnunet_search_util_urls_read(char ***urls, const char *file) {
 	FILE *fh = fopen(file, "r");
 	if(fh == NULL) {
-		printf("Error opening file...");
+		printf("Error opening file...\n");
+		*urls = NULL;
 		return 0;
-		/**
-		 * Todo: Handle error
-		 */
 	}
 
 	size_t urls_size = 32;
