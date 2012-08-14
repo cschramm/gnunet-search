@@ -397,6 +397,19 @@ static int gnunet_search_flooding_core_inbound_notify(void *cls, const struct GN
 	return GNUNET_OK;
 }
 
+/**
+ * @brief This function is the handler to be called for a new request or a response destined for this node.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function is the handler to be called for a new request or a response destined for this node. In case a request is received it tries to find URLs for
+ * the requested keyword using the storage component. In the event the search is successful the function creates a response message and sends it back to
+ * the originator of the request. In case a response is received its data is delivered to the client using the client communication component.
+ *
+ * @param sender the sender of the message (not used)
+ * @param flooding_message the flooding message received
+ * @param flooding_message_size the size of the flooding message
+ */
 static void gnunet_search_flooding_message_notification_handler(struct GNUNET_PeerIdentity const *sender,
 		struct gnunet_search_flooding_message *flooding_message, size_t flooding_message_size) {
 	switch(flooding_message->type) {
@@ -424,7 +437,7 @@ static void gnunet_search_flooding_message_notification_handler(struct GNUNET_Pe
 				size_t values_serialized_size = gnunet_search_storage_value_serialize(&values_serialized, values,
 						GNUNET_SEARCH_FLOODING_MESSAGE_MAXIMAL_PAYLOAD_SIZE);
 
-				gnunet_search_flooding_peer_response_flood(values_serialized, values_serialized_size,
+				gnunet_search_flooding_peer_response_send(values_serialized, values_serialized_size,
 						be64toh(flooding_message->flow_id));
 
 				GNUNET_free(values_serialized);
@@ -445,12 +458,24 @@ static void gnunet_search_flooding_message_notification_handler(struct GNUNET_Pe
 	}
 }
 
+/**
+ * @brief This function sets the handler called in the event of new requests or locally destined answers.
+ *
+ * @param message_notification_handler a reference to the handler to set
+ */
 static void gnunet_search_flooding_handlers_set(
 		void (*message_notification_handler)(struct GNUNET_PeerIdentity const *,
 				struct gnunet_search_flooding_message *, size_t)) {
 	_gnunet_search_flooding_message_notification_handler = message_notification_handler;
 }
 
+/**
+ * @brief This function initialises the flooding component.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function initialises the flooding component. It also connects to the GNUnet core.
+ */
 void gnunet_search_flooding_init() {
 	gnunet_search_flooding_message_queue = queue_construct();
 	gnunet_search_flooding_routing_table = (struct gnunet_search_flooding_routing_entry *) GNUNET_malloc(
@@ -468,6 +493,13 @@ void gnunet_search_flooding_init() {
 	gnunet_search_flooding_handlers_set(&gnunet_search_flooding_message_notification_handler);
 }
 
+/**
+ * @brief This function releases all resources held by the flooding component.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function releases all resources held by the flooding component. It also disconnects from the GNUnet core and flushes the output queue.
+ */
 void gnunet_search_flooding_free() {
 	GNUNET_CORE_disconnect(gnunet_search_flooding_core_handle);
 
@@ -481,6 +513,23 @@ void gnunet_search_flooding_free() {
 	}
 }
 
+/**
+ * @brief This function processes a message.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function processes a message. In case the message is a request it first checks whether the routing table already contains the flow id - in that case the
+ * same request has already been seen before and thus has been flooded in a cycle; such a message is discarded. Otherwise the new flow is entered into the routing
+ * table. Afterwards the request is passed to the handler that processes the search for the keyword included in the request (see above). Independent of the result
+ * of the search the request's TTL is decremented and it is - in case the resulting TTL is greater than zero - flooded to all neighbouring peers; thus a request
+ * always either reaches all peers or is discarded because of an exceeded TTL - it is not stopped because of a peer knowing an answer. The reason for that behaviour is that there might
+ * be multiple peers with different answers all of which the sender is interested in. In case the message is a response the corresponding entry in the routing table is
+ * searched. If no entry is found the message is discarded; otherwise the message is either passed to the message notification handler (in case of an answer to a request
+ * originating at local node) or forwarded to the next hop according to the entry of the routing table.
+ *
+ * @param sender the sender peer of the message; this parameter has to be NULL in case the message is a request originating locally
+ * @param message the message to process
+ */
 void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity const *sender,
 		struct GNUNET_MessageHeader const *message) {
 	size_t message_size = ntohs(message->size);
@@ -563,7 +612,29 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 	}
 }
 
-void gnunet_search_flooding_peer_data_flood(void const *data, size_t data_size, uint8_t type, uint64_t flow_id) {
+/**
+ * @brief This function is a wrapper function to process a message originating locally.
+ *
+ * @param message the message to process
+ */
+void gnunet_search_flooding_peer_local_message_process(struct GNUNET_MessageHeader const *message) {
+	gnunet_search_flooding_peer_message_process(NULL, message);
+}
+
+/**
+ * @brief This function sends data originating locally either by flooding (in case of a request) or by forwarding (in case of a response).
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function sends data originating locally either by flooding (in case of a request) or by forwarding (in case of a response). It therefore
+ * prepends the GNUnet message header and the flooding message header.
+ *
+ * @param data the data so send
+ * @param data_size the size of the data; the caller should care about the maximal possible size using the GNUNET_SEARCH_FLOODING_MESSAGE_MAXIMAL_PAYLOAD_SIZE constant.
+ * @param type the type of the message - either GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST or GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE
+ * @param flow_id the flow id to use
+ */
+void gnunet_search_flooding_peer_data_send(void const *data, size_t data_size, uint8_t type, uint64_t flow_id) {
 	size_t message_total_size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct gnunet_search_flooding_message)
 			+ data_size;
 
@@ -584,20 +655,29 @@ void gnunet_search_flooding_peer_data_flood(void const *data, size_t data_size, 
 
 	memcpy(flooding_message + 1, data, data_size);
 
-	gnunet_search_flooding_peer_request_message_flood(message);
+	gnunet_search_flooding_peer_local_message_process(message);
 
 	GNUNET_free(buffer);
 }
 
-void gnunet_search_flooding_peer_request_message_flood(struct GNUNET_MessageHeader const *message) {
-	gnunet_search_flooding_peer_message_process(NULL, message);
-}
-
+/**
+ * @brief This function sends data using a request message and a random flow id.
+ *
+ * @param data the data to send
+ * @param data_size the size of the data; the caller should care about the maximal possible size using the GNUNET_SEARCH_FLOODING_MESSAGE_MAXIMAL_PAYLOAD_SIZE constant.
+ */
 void gnunet_search_flooding_peer_request_flood(void const *data, size_t data_size) {
-	gnunet_search_flooding_peer_data_flood(data, data_size, GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST,
+	gnunet_search_flooding_peer_data_send(data, data_size, GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST,
 			((uint64_t) rand() << 32) | rand());
 }
 
-void gnunet_search_flooding_peer_response_flood(void const *data, size_t data_size, uint64_t flow_id) {
-	gnunet_search_flooding_peer_data_flood(data, data_size, GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE, flow_id);
+/**
+ * @brief This function sends data using a response message.
+ *
+ * @param data the data to send
+ * @param data_size the size of the data; the caller should care about the maximal possible size using the GNUNET_SEARCH_FLOODING_MESSAGE_MAXIMAL_PAYLOAD_SIZE constant.
+ * @param flow_id the flow id to use
+ */
+void gnunet_search_flooding_peer_response_send(void const *data, size_t data_size, uint64_t flow_id) {
+	gnunet_search_flooding_peer_data_send(data, data_size, GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_RESPONSE, flow_id);
 }

@@ -98,7 +98,7 @@ static size_t gnunet_search_client_communication_mappings_index;
  * @param flow_id the flow id to be used for the flow
  */
 static void gnunet_search_client_communication_flooding_process(char const *keyword, uint64_t flow_id) {
-	gnunet_search_flooding_peer_data_flood(keyword, strlen(keyword) + 1, GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST,
+	gnunet_search_flooding_peer_data_send(keyword, strlen(keyword) + 1, GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST,
 			flow_id);
 //	gnunet_search_flooding_peer_request_flood(keyword, strlen(keyword) + 1);
 }
