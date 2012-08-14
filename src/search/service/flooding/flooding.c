@@ -320,6 +320,18 @@ static void gnunet_search_flooding_peer_iterate_handler(void *cls, const struct 
 	gnunet_search_flooding_to_peer_message_send(peer, parameters->data, parameters->size);
 }
 
+/**
+ * @brief This function floods data to all known peers.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function floods data to all known peers. In order to do that it wraps up all parameters necessary in a data structure and initiates iterating
+ * all peers using the appropriate GNUnet function.
+ *
+ * @param sender the peer that initiated the flooding; it may be NULL in case the request originated locally.
+ * @param data the data to flood
+ * @param size the size of the data to flood
+ */
 static void gnunet_search_flooding_data_flood(struct GNUNET_PeerIdentity const *sender, void *data, size_t size) {
 	struct gnunet_search_flooding_data_flood_parameters *parameters =
 			(struct gnunet_search_flooding_data_flood_parameters*) GNUNET_malloc(
@@ -338,6 +350,14 @@ static void gnunet_search_flooding_data_flood(struct GNUNET_PeerIdentity const *
 	GNUNET_CORE_iterate_peers(gnunet_search_globals_cfg, &gnunet_search_flooding_peer_iterate_handler, parameters);
 }
 
+/**
+ * @brief This function retrieves the index of the next hop from the routing table by a given flow id.
+ *
+ * @param index a reference to a memory location to store the index in; it may be NULL - in that case the index is not stored.
+ * @param flow_id the flow id to search for
+ *
+ * @return a boolean value indicating success (1) or failure (0)
+ */
 static uint8_t gnunet_search_flooding_routing_table_id_get_next_hop_index(size_t *index, uint64_t flow_id) {
 	for(size_t i = 0; i < gnunet_search_flooding_routing_table_length; ++i) {
 		if(gnunet_search_flooding_routing_table[i].flow_id == flow_id) {
@@ -349,10 +369,28 @@ static uint8_t gnunet_search_flooding_routing_table_id_get_next_hop_index(size_t
 	return 0;
 }
 
+/**
+ * @brief This function tests whether an entry for a given flow id is contained in the routing table.
+ *
+ * @param flow_id the flow id to search for
+ */
 static char gnunet_search_flooding_routing_table_id_contains(uint64_t flow_id) {
 	return gnunet_search_flooding_routing_table_id_get_next_hop_index(NULL, flow_id);
 }
 
+/**
+ * @brief This function receives a new message from a peer.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This function receives a new message from a peer. It then initiates the processing of the message.
+ *
+ * @param cls the GNUnet closure (not used)
+ * @param other the peer that sent the message
+ * @param message the message received
+ * @param atsi a reference to the GNUnet ATS information (not used)
+ * @param atsi_count the length of the ATS information (not used)
+ */
 static int gnunet_search_flooding_core_inbound_notify(void *cls, const struct GNUNET_PeerIdentity *other,
 		const struct GNUNET_MessageHeader *message, const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count) {
 	gnunet_search_flooding_peer_message_process(other, message);
