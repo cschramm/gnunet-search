@@ -152,10 +152,13 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 
 //		printf("Searching keyword: %s...\n", keyword);
 
-		uint64_t flow_id =  ((uint64_t) rand() << 32) | rand();
-		gnunet_search_client_communication_mappings[gnunet_search_client_communication_mappings_index].flow_id = flow_id;
-		gnunet_search_client_communication_mappings[gnunet_search_client_communication_mappings_index].request_id = cmd->id;
-		gnunet_search_client_communication_mappings_index = (gnunet_search_client_communication_mappings_index + 1)%GNUNET_SEARCH_CLIENT_COMMUNICATION_MAPPINGS_SIZE;
+		uint64_t flow_id = ((uint64_t) rand() << 32) | rand();
+		gnunet_search_client_communication_mappings[gnunet_search_client_communication_mappings_index].flow_id =
+				flow_id;
+		gnunet_search_client_communication_mappings[gnunet_search_client_communication_mappings_index].request_id =
+				cmd->id;
+		gnunet_search_client_communication_mappings_index = (gnunet_search_client_communication_mappings_index + 1)
+				% GNUNET_SEARCH_CLIENT_COMMUNICATION_MAPPINGS_SIZE;
 		if(gnunet_search_client_communication_mappings_length < GNUNET_SEARCH_CLIENT_COMMUNICATION_MAPPINGS_SIZE)
 			gnunet_search_client_communication_mappings_length++;
 
@@ -213,14 +216,20 @@ static void gnunet_search_client_communication_disconnect_handle(void *cls, stru
  * \latexonly \\ \\ \endlatexonly
  * \em Detailed \em description \n
  * This function handles the reception of a new GNUnet message from a client. It call a necessary GNUnet functions to acknowledge the reception
- * and then passes the message to the communication component.
+ * and then passes the message to the communication component. If a client connect while another client is already connected the request is
+ * not processed.
  */
 void gnunet_search_client_communication_message_handle(void *cls, struct GNUNET_SERVER_Client *client,
 		const struct GNUNET_MessageHeader *gnunet_message) {
-	GNUNET_SERVER_receive_done(client, GNUNET_OK);
-	GNUNET_SERVER_client_keep(client);
-	gnunet_search_client_communication_client = client;
-	gnunet_search_communication_receive(gnunet_message);
+	if(gnunet_search_client_communication_client == NULL) {
+		GNUNET_SERVER_receive_done(client, GNUNET_OK);
+		GNUNET_SERVER_client_keep(client);
+		gnunet_search_client_communication_client = client;
+		gnunet_search_communication_receive(gnunet_message);
+	} else {
+		GNUNET_SERVER_receive_done(client, GNUNET_NO);
+		printf("Debug: Client already connected, not accepting client connection (TODO: send error)!\n");
+	}
 }
 
 /**
@@ -229,8 +238,9 @@ void gnunet_search_client_communication_message_handle(void *cls, struct GNUNET_
  * @param server a reference to the GNUnet server object needed to add handlers
  */
 void gnunet_search_client_communication_init(struct GNUNET_SERVER_Handle *server) {
-	gnunet_search_client_communication_mappings = (struct gnunet_search_client_communication_message_mapping*) GNUNET_malloc(
-			sizeof(struct gnunet_search_client_communication_message_mapping)
+	gnunet_search_client_communication_mappings =
+			(struct gnunet_search_client_communication_message_mapping*) GNUNET_malloc(
+					sizeof(struct gnunet_search_client_communication_message_mapping)
 					* GNUNET_SEARCH_CLIENT_COMMUNICATION_MAPPINGS_SIZE);
 	gnunet_search_client_communication_mappings_index = 0;
 	gnunet_search_client_communication_mappings_length = 0;
@@ -264,6 +274,7 @@ void gnunet_search_client_communication_free() {
 void gnunet_search_client_communication_flush() {
 	gnunet_search_client_communication_mappings_length = 0;
 	gnunet_search_client_communication_mappings_index = 0;
+	gnunet_search_client_communication_client = NULL;
 
 	gnunet_search_communication_flush();
 }
@@ -300,7 +311,7 @@ void gnunet_search_client_communication_send_result(void const *data, size_t siz
  */
 uint16_t gnunet_search_client_communication_by_flow_id_request_id_get(uint64_t flow_id) {
 	uint16_t request_id = 0;
-	for (size_t i = 0; i < gnunet_search_client_communication_mappings_length; ++i)
+	for(size_t i = 0; i < gnunet_search_client_communication_mappings_length; ++i)
 		if(gnunet_search_client_communication_mappings[i].flow_id == flow_id) {
 			request_id = gnunet_search_client_communication_mappings[i].request_id;
 			break;
