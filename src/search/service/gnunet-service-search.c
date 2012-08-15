@@ -1,27 +1,24 @@
-/*
- This file is part of GNUnet.
- (C)
-
- GNUnet is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published
- by the Free Software Foundation; either version 3, or (at your
- option) any later version.
-
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with GNUnet; see the file COPYING.  If not, write to the
- Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- Boston, MA 02111-1307, USA.
- */
-
 /**
- * @file ext/gnunet-service-ext.c
- * @brief ext service implementation
- * @author Christian Grothoff
+ * @file search/service/gnunet-service-search.c
+ * @author Julian Kranz
+ *
+ * @brief This file contains all functions pertaining to the GNUnet Search client's main component.
+ */
+/*
+ *  This file is part of GNUnet Search.
+ *
+ *  GNUnet Search is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  GNUnet Search is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNUnet Search.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #define _GNU_SOURCE
@@ -41,10 +38,10 @@
 #include "globals/globals.h"
 
 /**
- * Task run during shutdown.
+ * @brief This function handles the shutdown of the application.
  *
- * @param cls unused
- * @param tc unused
+ * @param cls the GNUnet closure
+ * @param tc the GMUnet scheduler task context
  */
 static void gnunet_search_shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 	gnunet_search_dht_free();
@@ -62,14 +59,14 @@ static void gnunet_search_shutdown_task(void *cls, const struct GNUNET_SCHEDULER
 }
 
 /**
- * Process statistics requests.
+ * @brief This function is the main function that will be run by the scheduler.
  *
- * @param cls closure
- * @param server the initialized server
- * @param c configuration to use
+ * @param cls the GNUnet closure
+ * @param server the GNUnet server handle
+ * @param cfg the GNUnet configuration
  */
-static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c) {
-	gnunet_search_globals_cfg = c;
+static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *cfg) {
+	gnunet_search_globals_cfg = cfg;
 
 	gnunet_search_client_communication_init(server);
 
@@ -83,14 +80,12 @@ static void gnunet_search_service_run(void *cls, struct GNUNET_SERVER_Handle *se
 }
 
 /**
- * The main function for the ext service.
+ * @brief This function is the main function of the application.
  *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * @param argc the number of arguments from the command line
+ * @param argv the command line arguments
+ * @return 0 in case of success, 1 on error
  */
 int main(int argc, char * const *argv) {
 	return (GNUNET_OK == GNUNET_SERVICE_run(argc, argv, "search", GNUNET_SERVICE_OPTION_NONE, &gnunet_search_service_run, NULL)) ? 0 : 1;
 }
-
-/* end of gnunet-service-ext.c */

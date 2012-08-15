@@ -1,7 +1,8 @@
 /**
- * @file cli-client/gnunet-search.c
- * @brief This file contains all functions pertaining to the GNUnet Search client's main component.
+ * @file search/cli-client/gnunet-search.c
  * @author Julian Kranz
+ *
+ * @brief This file contains all functions pertaining to the GNUnet Search client's main component.
  */
 /*
  *  This file is part of GNUnet Search.
@@ -171,7 +172,7 @@ static void gnunet_search_transmit_keyword(const char *keyword) {
 }
 
 /**
- * @brief This function handles the shutdon of the application.
+ * @brief This function handles the shutdown of the application.
  *
  * @param cls the GNUnet closure
  * @param tc the GMUnet scheduler task context
@@ -188,7 +189,7 @@ static void shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *
  * @param cls the GNUnet closure
  * @param args the remaining command-line arguments
  * @param cfgfile the name of the configuration file used (for saving, can be NULL!)
- * @param cfg the configuration
+ * @param cfg the GNUnet configuration
  */
 static void gnunet_search_run(void *cls, char * const *args, const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
