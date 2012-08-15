@@ -157,7 +157,7 @@ static struct MHD_Response * gnunet_search_web_serve_file(struct gnunet_search_w
 				else if (!strcmp(ext, ".js"))
 					context->type = "text/javascript";
 			}
-			return MHD_create_response_from_fd_at_offset(sbuf.st_size, fd, 0);
+			return MHD_create_response_from_fd(sbuf.st_size, fd);
 		} else {
 			close(fd);
 		}
@@ -404,20 +404,10 @@ static void gnunet_search_web_process_requests(void * cls, const struct GNUNET_S
 	FD_ZERO(&rs);
 	FD_ZERO(&ws);
 	FD_ZERO(&es);
-	struct timeval tv;
-	struct timeval * tvp;
-	unsigned MHD_LONG_LONG mhd_timeout;
 	int max = 0;
 	if (MHD_get_fdset(cls, &rs, &ws, &es, &max) != MHD_YES)
 		exit(1);
-
-	if (MHD_get_timeout(cls, &mhd_timeout) == MHD_YES) {
-		tv.tv_sec = mhd_timeout / 1000;
-		tv.tv_usec = (mhd_timeout - (tv.tv_sec * 1000)) * 1000;
-		tvp = &tv;
-	} else
-		tvp = 0;
-	select(max + 1, &rs, &ws, &es, tvp);
+	select(max + 1, &rs, &ws, &es, 0);
 	MHD_run(cls);
 	GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_ZERO, &gnunet_search_web_process_requests, cls);
 }
