@@ -4,6 +4,11 @@
  * @date 8.8.2012
  *
  * @brief This file contains all functions pertaining to the GNUnet Search service's dht component.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This file contains all functions pertaining to the GNUnet Search service's dht component. This component is responsible for all interaction with the
+ * DHT service. It does not only offer functions to insert data but also to monitors the DHT's activity.
  */
 /*
  *  This file is part of GNUnet Search.

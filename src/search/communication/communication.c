@@ -4,6 +4,12 @@
  * @date 6.8.2012
  *
  * @brief This file contains all functions pertaining to the GNUnet Search communication component.
+ *
+ * \latexonly \\ \\ \endlatexonly
+ * \em Detailed \em description \n
+ * This file contains all functions pertaining to the GNUnet Search communication component. This component implements generic communication functionality used
+ * by the service and the client. It takes care of sending and receiving messages and storing outgoing data in a queue. Furthermore it handles the fragmentation
+ * of messages in order to enable the exchange of data of arbitrary size.
  */
 /*
  *  This file is part of GNUnet Search.
