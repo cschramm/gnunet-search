@@ -221,7 +221,7 @@ static void gnunet_search_client_communication_disconnect_handle(void *cls, stru
  */
 void gnunet_search_client_communication_message_handle(void *cls, struct GNUNET_SERVER_Client *client,
 		const struct GNUNET_MessageHeader *gnunet_message) {
-	if(gnunet_search_client_communication_client == NULL) {
+	if(gnunet_search_client_communication_client == NULL || client == gnunet_search_client_communication_client) {
 		GNUNET_SERVER_receive_done(client, GNUNET_OK);
 		GNUNET_SERVER_client_keep(client);
 		gnunet_search_client_communication_client = client;
