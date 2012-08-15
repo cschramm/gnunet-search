@@ -263,8 +263,8 @@ static void gnunet_search_web_receive_response(size_t size, void *buffer) {
 			if (!strcmp(query->results[i], results + offset))
 				continue;
 
-		GNUNET_realloc(query->results, ++(query->num_res) * sizeof(char *));
-		query->results[query->num_res - 1] = (char*)GNUNET_strdup(results + offset);
+		query->results = GNUNET_realloc(query->results, ++(query->num_res) * sizeof(char *));
+		query->results[query->num_res - 1] = GNUNET_strdup(results + offset);
 	}
 }
 
@@ -351,10 +351,10 @@ static unsigned short gnunet_search_web_start_search(const char *q) {
  * @return MHD_YES on success, MHD_NO on error
  */
 static int gnunet_search_web_uri_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_dat_size, void **con_cls) {
-	struct gnunet_search_web_request_context * context = malloc(sizeof(struct gnunet_search_web_request_context));
-	context->type = "text/plain";
+	struct gnunet_search_web_request_context context;
+	context.type = "text/plain";
 	
-	struct MHD_Response * response = gnunet_search_web_serve_file(context, url + 1);
+	struct MHD_Response * response = gnunet_search_web_serve_file(&context, url + 1);
 
 	if (!response) {
 		if (!strcmp(url, "/")) {
@@ -362,20 +362,21 @@ static int gnunet_search_web_uri_handler(void *cls, struct MHD_Connection *conne
 			unsigned short qid = 0;
 			if (q)
 				qid = gnunet_search_web_start_search(q);
-			gnunet_search_web_render_page(context, q, qid);
+			gnunet_search_web_render_page(&context, q, qid);
 		} else if (!strcmp(url, "/results")) {
-			gnunet_search_web_render_results(context, atoi(MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "q")), atoi(MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "o")));
+			gnunet_search_web_render_results(&context, atoi(MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "q")), atoi(MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "o")));
 		} else {
-			context->output = GNUNET_malloc(16);
-			strcpy(context->output, "404 - Not Found");
+			context.output = GNUNET_malloc(16);
+			strcpy(context.output, "404 - Not Found");
 		}
 		
-		response = MHD_create_response_from_buffer(strlen(context->output), (void *)context->output, MHD_RESPMEM_MUST_FREE);
+		response = MHD_create_response_from_buffer(strlen(context.output), (void *)context.output, MHD_RESPMEM_MUST_FREE);
 	}
 
-	MHD_add_response_header(response, "Content-Type", context->type);
-	int ret = MHD_queue_response(connection, context->status, response);
+	MHD_add_response_header(response, "Content-Type", context.type);
+	int ret = MHD_queue_response(connection, context.status, response);
 	MHD_destroy_response(response);
+
 	return ret;
 }
 
