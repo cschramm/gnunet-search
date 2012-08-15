@@ -252,19 +252,20 @@ static void gnunet_search_web_receive_response(size_t size, void *buffer) {
 	struct gnunet_search_web_query * query = gnunet_search_web_lookup_query(response->id);
 	if (!query)
 		return;
-	
-	// skip if this result is already known
-	for (unsigned int i = 0; i < query->num_res; i++)
-		if (!strncmp(query->results[i], (const char *)response + 1, result_length))
-			return;
 
-	// extend results array otherwise
-	GNUNET_realloc(query->results, ++(query->num_res) * sizeof(char *));
-	
-	// copy result into repective array
-	query->results[query->num_res - 1] = (char*)GNUNET_malloc(result_length + 1);
-	memcpy(query->results[query->num_res - 1], response + 1, result_length);
-	query->results[query->num_res - 1][result_length] = 0;
+	char results[result_length + 1];
+	memcpy(results, response + 1, result_length);
+	results[result_length] = 0;
+
+	for (unsigned int offset = 0; offset < result_length; offset += strlen(results + offset) + 1) {
+		// skip if this result is already known
+		for (unsigned int i = 0; i < query->num_res; i++)
+			if (!strcmp(query->results[i], results + offset))
+				continue;
+
+		GNUNET_realloc(query->results, ++(query->num_res) * sizeof(char *));
+		query->results[query->num_res - 1] = (char*)GNUNET_strdup(results + offset);
+	}
 }
 
 /**
