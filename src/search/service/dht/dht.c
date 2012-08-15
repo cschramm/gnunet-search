@@ -153,7 +153,7 @@ void gnunet_search_dht_url_list_put(char **urls, size_t size, unsigned int param
 		char *key_value;
 		gnunet_search_dht_key_value_generate(&key_value, "url", parameter, urls[i]);
 
-		printf("Putting value %s...\n", key_value);
+//		printf("Putting value %s...\n", key_value);
 
 		gnunet_search_dht_string_string_put(key_value, key_value);
 

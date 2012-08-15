@@ -296,7 +296,7 @@ static void gnunet_search_flooding_to_peer_message_send(const struct GNUNET_Peer
 static void gnunet_search_flooding_peer_iterate_handler(void *cls, const struct GNUNET_PeerIdentity *peer,
 		const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count) {
 	if(!peer) {
-		printf("Iterating done...\n");
+//		printf("Iterating done...\n");
 		struct gnunet_search_flooding_data_flood_parameters *parameters =
 				(struct gnunet_search_flooding_data_flood_parameters*) cls;
 		GNUNET_free(parameters->data);
@@ -309,13 +309,13 @@ static void gnunet_search_flooding_peer_iterate_handler(void *cls, const struct 
 			(struct gnunet_search_flooding_data_flood_parameters*) cls;
 
 	if(parameters->sender && !GNUNET_CRYPTO_hash_cmp(&parameters->sender->hashPubKey, &peer->hashPubKey)) {
-		printf("Skipping sender...\n");
+//		printf("Skipping sender...\n");
 		return;
 	}
 
 	struct GNUNET_CRYPTO_HashAsciiEncoded result;
 	GNUNET_CRYPTO_hash_to_enc(&peer->hashPubKey, &result);
-	printf("Flooding message to peer %.*s...\n", 104, (char*) &result);
+//	printf("Flooding message to peer %.*s...\n", 104, (char*) &result);
 
 	gnunet_search_flooding_to_peer_message_send(peer, parameters->data, parameters->size);
 }
@@ -427,7 +427,7 @@ static void gnunet_search_flooding_message_notification_handler(struct GNUNET_Pe
 					break;
 				}
 			if(!sane) {
-				printf("Fatal error: Invalid data");
+//				printf("Fatal error: Invalid data");
 				return;
 			}
 
@@ -548,7 +548,7 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 	switch(flooding_message->type) {
 		case GNUNET_SEARCH_FLOODING_MESSAGE_TYPE_REQUEST: {
 			if(gnunet_search_flooding_routing_table_id_contains(flooding_message_flow_id_host)) {
-				printf("Message cycle; discarding...\n");
+//				printf("Message cycle; discarding...\n");
 				break;
 			}
 
@@ -580,11 +580,11 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 			uint8_t found = gnunet_search_flooding_routing_table_id_get_next_hop_index(&next_hop_index,
 					flooding_message_flow_id_host);
 			if(!found) {
-				printf("Unknown flow; aborting...\n");
+//				printf("Unknown flow; aborting...\n");
 				break;
 			}
 			if(gnunet_search_flooding_routing_table[next_hop_index].own_request) {
-				printf("Yippie, this is response to my request :-).\n");
+//				printf("Yippie, this is response to my request :-).\n");
 				if(_gnunet_search_flooding_message_notification_handler)
 					_gnunet_search_flooding_message_notification_handler(sender, flooding_message,
 							flooding_message_size);
@@ -595,12 +595,12 @@ void gnunet_search_flooding_peer_message_process(struct GNUNET_PeerIdentity cons
 						(struct gnunet_search_flooding_message *) GNUNET_malloc(flooding_message_size);
 				memcpy(output_flooding_message, flooding_message, flooding_message_size);
 
-				printf("Relaying answer to original sender of request...\n");
-				struct GNUNET_CRYPTO_HashAsciiEncoded result;
-				GNUNET_CRYPTO_hash_to_enc(&sender->hashPubKey, &result);
-				printf("Received from peer: %.*s...\n", 104, (char*) &result);
-				GNUNET_CRYPTO_hash_to_enc(&next_hop->hashPubKey, &result);
-				printf("Relaying to peer: %.*s...\n", 104, (char*) &result);
+//				printf("Relaying answer to original sender of request...\n");
+//				struct GNUNET_CRYPTO_HashAsciiEncoded result;
+//				GNUNET_CRYPTO_hash_to_enc(&sender->hashPubKey, &result);
+//				printf("Received from peer: %.*s...\n", 104, (char*) &result);
+//				GNUNET_CRYPTO_hash_to_enc(&next_hop->hashPubKey, &result);
+//				printf("Relaying to peer: %.*s...\n", 104, (char*) &result);
 
 				output_flooding_message->ttl--;
 				if(output_flooding_message->ttl > 0)

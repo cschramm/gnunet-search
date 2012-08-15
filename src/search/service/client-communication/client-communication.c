@@ -142,7 +142,7 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 	if(size != cmd->size)
 		return;
 
-	printf("Command: action = %u, size = %" PRIu64 "\n", cmd->action, cmd->size);
+//	printf("Command: action = %u, size = %" PRIu64 "\n", cmd->action, cmd->size);
 
 	if(cmd->action == GNUNET_SEARCH_ACTION_SEARCH) {
 		char *keyword;
@@ -150,7 +150,7 @@ static void gnunet_search_client_message_handle(size_t size, void *buffer) {
 
 		gnunet_search_normalization_keyword_normalize(keyword);
 
-		printf("Searching keyword: %s...\n", keyword);
+//		printf("Searching keyword: %s...\n", keyword);
 
 		uint64_t flow_id =  ((uint64_t) rand() << 32) | rand();
 		gnunet_search_client_communication_mappings[gnunet_search_client_communication_mappings_index].flow_id = flow_id;
