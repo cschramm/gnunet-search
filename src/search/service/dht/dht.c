@@ -136,9 +136,8 @@ static void gnunet_search_dht_monitor_put(void *cls, enum GNUNET_DHT_RouteOption
 	size_t prefix_length = strlen(prefix);
 	if(size < prefix_length + 1)
 		return;
-	if(!strncmp(prefix, data, prefix_length)) {
+	if(!strncmp(prefix, data, prefix_length))
 		gnunet_search_url_processor_incoming_url_process(prefix_length, data, size);
-	}
 }
 
 /**

@@ -92,9 +92,11 @@ static size_t gnunet_search_url_processor_url_extract(char **url, unsigned int *
  * @param the size of the data containing the DHT value
  */
 void gnunet_search_url_processor_incoming_url_process(size_t prefix_length, void const *data, size_t size) {
+//	printf("data: %s\n", (char*)data);
+
 	char *url;
 	unsigned int parameter;
-	size_t url_length = gnunet_search_url_processor_url_extract(&url, &parameter, prefix_length, data, size);
+	/*size_t url_length = */gnunet_search_url_processor_url_extract(&url, &parameter, prefix_length, data, size);
 
 //	printf("Parameter: %u; url: %s\n", parameter, url);
 
